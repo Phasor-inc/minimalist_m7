@@ -3,7 +3,9 @@ Xiaomi-Robotics-1-RoboCasa365, with an optional M7 consolidation
 regularization term. Supports two modes for the ablation required by the
 design spec: LoRA-only (use_m7_consolidation=False) and LoRA+M7
 (use_m7_consolidation=True) -- same script, one flag, so both runs are
-guaranteed to share every other hyperparameter.
+guaranteed to share every other hyperparameter, PROVIDED both are invoked
+with the same --seed (see main()'s seeding comments and NOTES.md "Task 7"
+for why this matters and what it does/doesn't cover).
 
 Real training-loop wiring (below compute_total_loss) loads the real frozen
 xr1() model (mibot.models.VLA.XR1), the real downloaded RoboCasa365
@@ -15,6 +17,7 @@ see NOTES.md "Task 7" for real smoke-test evidence.
 import argparse
 import glob
 import os
+import random
 import sys
 import time
 
@@ -187,7 +190,12 @@ def freeze_and_inject_lora(model, rank: int, alpha: float):
     """Freezes every parameter in the loaded model (base VLM + DiT), then
     injects LoRA into the VLM's language_model decoder layers only.
     model.dit is never passed to inject_lora_into_vlm_layers -- the DiT
-    action head is structurally untouched by this call."""
+    action head is structurally untouched by this call.
+
+    Caller must seed torch's RNG before calling this (see main()) --
+    LoRALinear's lora_A uses kaiming_uniform_ init, so the two ablation
+    runs (LoRA-only vs LoRA+M7) only start from the same LoRA weights if
+    the global RNG state entering this call is identical."""
     for param in model.parameters():
         param.requires_grad_(False)
     inject_lora_into_vlm_layers(model.vlm.model.language_model, rank=rank, alpha=alpha)
@@ -245,13 +253,18 @@ def _ensure_data_symlink(data_dir: str):
     os.symlink(target, link_path)
 
 
-def build_dataloader(data_dir: str, batch_size: int, action_length: int, total_steps: int, num_workers: int):
+def build_dataloader(data_dir: str, batch_size: int, action_length: int, total_steps: int, num_workers: int, seed: int):
     """Builds the real JsonDataset + CustomCollate DataLoader against the
     real xr1_post_train_demo data, using load_washer.yaml's own real
     mean/std/q01/q99 normalization stats (loaded directly from the YAML,
     not re-typed by hand) -- only the `paths` list is overridden, to point
     at the actual downloaded json file locations rather than
-    load_washer.yaml's own CWD-relative convention (see NOTES.md)."""
+    load_washer.yaml's own CWD-relative convention (see NOTES.md).
+
+    Shuffling uses a dedicated torch.Generator seeded with `seed`, kept
+    separate from the global torch RNG -- so the batch order a run sees is
+    reproducible given the same seed regardless of how much global RNG
+    state model/adapter construction consumed beforehand (see main())."""
     washer_yaml_path = os.path.join(XR1_SRC, "configs", "data", "load_washer.yaml")
     with open(washer_yaml_path) as yaml_file:
         washer_cfg = yaml.safe_load(yaml_file)
@@ -278,12 +291,15 @@ def build_dataloader(data_dir: str, batch_size: int, action_length: int, total_s
     }
     dataset = JsonDataset(params)
     collate_fn = CustomCollate()
+    generator = torch.Generator()
+    generator.manual_seed(seed)
     return DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=True,
         collate_fn=collate_fn,
         num_workers=num_workers,
+        generator=generator,
     )
 
 
@@ -372,6 +388,20 @@ def save_trainable_state(output_dir, model, adapter, memory_core, use_m7_consoli
     return out_path
 
 
+def _dit_weight_sum(model):
+    """Real, exact float sum over every DiT parameter, used to verify the
+    DiT was genuinely never touched during training (not just assumed
+    frozen because it received no optimizer -- a stray in-place op
+    elsewhere could still mutate it silently). Accumulates a running
+    per-parameter sum rather than torch.cat-ing every DiT parameter into
+    one transient multi-GB fp32 tensor -- avoids that memory spike on an
+    already GPU-memory-contended pod (see NOTES.md GPU-contention note)."""
+    total = 0.0
+    for param in model.dit.parameters():
+        total += param.detach().float().sum().item()
+    return total
+
+
 def build_arg_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", required=True, help="Path to the downloaded RoboCasa365 checkpoint dir.")
@@ -382,7 +412,21 @@ def build_arg_parser():
         help="Dir containing json/ and videos/ subdirs (xr1_post_train_demo layout).",
     )
     parser.add_argument("--use-m7-consolidation", action="store_true", help="Enable the LoRA+M7 ablation mode.")
-    parser.add_argument("--total-steps", type=int, default=20, help="Total optimizer steps for this run.")
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Seeds torch/random RNGs (LoRA init, DataLoader shuffle order, xr1.forward()'s internal "
+        "stochasticity). Task 9's LoRA-only vs LoRA+M7 ablation is only valid if BOTH runs use the same "
+        "--seed -- see NOTES.md.",
+    )
+    parser.add_argument(
+        "--total-steps",
+        type=int,
+        default=20,
+        help="Total optimizer steps for this run. NOTE: 20 is a smoke-test-scale placeholder -- Task 9 must "
+        "override this with a real training budget (see NOTES.md).",
+    )
     parser.add_argument("--batch-size", type=int, default=48, help="Matches load_washer.yaml's real batch_size.")
     parser.add_argument("--action-length", type=int, default=30, help="Matches load_washer.yaml's real action_length.")
     parser.add_argument("--lr", type=float, default=1e-4)
@@ -397,9 +441,24 @@ def build_arg_parser():
     return parser
 
 
+def _seed_everything(seed: int):
+    random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
 def main():
     args = build_arg_parser().parse_args()
     device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    # Seed up front so LoRA's kaiming_uniform_ init (drawn during
+    # freeze_and_inject_lora below) is identical between a LoRA-only and a
+    # LoRA+M7 run given the same --seed -- both runs call xr1()/checkpoint
+    # loading/freeze_and_inject_lora identically before any mode branching,
+    # so seeding here is enough to guarantee LoRA starts from the same
+    # weights in both modes.
+    _seed_everything(args.seed)
 
     print(f"Loading xr1() and RoboCasa365 checkpoint from {args.checkpoint} ...")
     model = load_xr1_with_checkpoint(args.checkpoint)
@@ -407,11 +466,7 @@ def main():
     model = model.to(device)
     model.train()
 
-    # Real, exact snapshot of the DiT's weights before training, to verify
-    # afterward that it was genuinely never touched (not just assumed frozen
-    # because it received no optimizer -- a stray in-place op elsewhere
-    # could still mutate it silently).
-    dit_weight_sum_before = torch.cat([p.detach().float().flatten() for p in model.dit.parameters()]).sum().item()
+    dit_weight_sum_before = _dit_weight_sum(model)
 
     adapter = memory_core = None
     if args.use_m7_consolidation:
@@ -426,7 +481,23 @@ def main():
     trainable_params = verify_trainable_params(model, adapter, memory_core)
     optimizer = torch.optim.AdamW(trainable_params, lr=args.lr)
 
-    loader = build_dataloader(args.data_dir, args.batch_size, args.action_length, args.total_steps, args.num_workers)
+    loader = build_dataloader(
+        args.data_dir, args.batch_size, args.action_length, args.total_steps, args.num_workers, args.seed
+    )
+
+    # Re-seed immediately before the training loop. LoRA+M7 mode's
+    # adapter/memory_core construction above draws extra RNG samples (their
+    # own nn.Linear/xavier_uniform_ init) that LoRA-only mode never draws --
+    # left alone, that would desynchronize the global RNG state the two
+    # modes enter the loop with, which would in turn desynchronize
+    # xr1.forward()'s own internal stochasticity (prefix_length via
+    # random.randint/random.random, the Beta-sampled flow-matching timestep,
+    # torch.randn_like noise) between the two ablation runs -- differences
+    # attributable to RNG bookkeeping, not to use_m7_consolidation. The
+    # DataLoader's batch order is unaffected either way (build_dataloader
+    # uses its own dedicated seeded torch.Generator, not the global RNG),
+    # so this re-seed only re-synchronizes xr1.forward()'s per-step draws.
+    _seed_everything(args.seed)
 
     capture = _VlmOutputCapture(model.vlm)
     step = 0
@@ -449,7 +520,7 @@ def main():
     finally:
         capture.remove()
 
-    dit_weight_sum_after = torch.cat([p.detach().float().flatten() for p in model.dit.parameters()]).sum().item()
+    dit_weight_sum_after = _dit_weight_sum(model)
     if dit_weight_sum_after != dit_weight_sum_before:
         raise RuntimeError(
             f"DiT weights changed during training (before={dit_weight_sum_before}, "
