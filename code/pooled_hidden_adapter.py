@@ -27,11 +27,21 @@ class PooledHiddenAdapter(nn.Module):
 def pool_state_token_hidden_states(hidden_states: torch.Tensor, state_token_mask: torch.Tensor) -> torch.Tensor:
     """hidden_states: [seq_len, hidden_size] (single sample) or
     [batch, seq_len, hidden_size]. state_token_mask: bool, same leading
-    seq_len dim. Returns the mean over masked positions."""
-    if not state_token_mask.any():
-        raise ValueError("state_token_mask has no True positions to pool over")
+    seq_len dim. Returns the mean over masked positions.
+
+    Raises ValueError if the mask has no True positions -- for a 3D batch,
+    this is checked per-row, since an all-False mask on any individual row
+    would otherwise silently mean() over an empty tensor and produce NaN
+    (rather than raising) for just that row while other rows are fine.
+    """
     if hidden_states.dim() == 2:
+        if not state_token_mask.any():
+            raise ValueError("state_token_mask has no True positions to pool over")
         return hidden_states[state_token_mask].mean(dim=0)
+
+    for i in range(state_token_mask.shape[0]):
+        if not state_token_mask[i].any():
+            raise ValueError(f"state_token_mask row {i} has no True positions to pool over")
     return torch.stack([
         hidden_states[i][state_token_mask[i]].mean(dim=0)
         for i in range(hidden_states.shape[0])
