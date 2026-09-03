@@ -130,22 +130,55 @@ def load_xr1_with_checkpoint(checkpoint_dir: str):
     if unexpected:
         raise RuntimeError(f"checkpoint has keys xr1() does not define: {unexpected}")
 
+    # Expected-missing prefixes: xr1()'s auxiliary choice-loss heads
+    # (state_projector_choice / action_projector_choice / score_projector_choice)
+    # are not part of the deployed RoboCasa365 checkpoint at all.
     expected_missing_prefixes = (
         "state_projector_choice.",
         "action_projector_choice.",
         "score_projector_choice.",
     )
-    unexplained_missing = [key for key in missing if not key.startswith(expected_missing_prefixes)]
+    # Expected-missing exact keys, discovered by actually running this loader
+    # and reading the real mismatch, not assumed up front:
+    #  - vlm.lm_head.weight: config.json has tie_word_embeddings=true, so HF's
+    #    _from_config()/post_init() ties lm_head.weight to
+    #    vlm.model.language_model.embed_tokens.weight (same underlying storage).
+    #    The checkpoint's safetensors legitimately never saves it separately
+    #    (standard HF tied-weights behavior) -- loading embed_tokens.weight
+    #    already updates what lm_head.weight reads.
+    #  - vlm.model.action_embed.weight / vlm.model.score_embed.weight: real,
+    #    confirmed absence -- grepped directly against
+    #    model.safetensors.index.json's full key list (1120 keys) and found
+    #    zero matches for "action_embed"/"score_embed" anywhere in the
+    #    released checkpoint. These embed the <a_i>/<score> input tokens used
+    #    only by xr1's auxiliary choice-loss training path (loss_l1/loss_score);
+    #    the deployed/released checkpoint apparently never shipped trained
+    #    weights for them. They stay at xr1()'s own random initialization and
+    #    stay frozen along with the rest of the base model in LoRA-only mode
+    #    -- consistent with this task's "only LoRA (+adapter/memory_core)
+    #    trainable" design, but worth flagging: loss_l1/loss_score will be
+    #    computed against untrained embeddings for this checkpoint. Recorded
+    #    in NOTES.md.
+    expected_missing_exact = {
+        "vlm.lm_head.weight",
+        "vlm.model.action_embed.weight",
+        "vlm.model.score_embed.weight",
+    }
+    unexplained_missing = [
+        key
+        for key in missing
+        if not key.startswith(expected_missing_prefixes) and key not in expected_missing_exact
+    ]
     if unexplained_missing:
         raise RuntimeError(
             "checkpoint is missing keys xr1() defines that are NOT the expected "
-            f"choice-head-only set: {unexplained_missing}"
+            f"set: {unexplained_missing}"
         )
 
     print(
         f"Loaded RoboCasa365 checkpoint from {checkpoint_dir}: "
         f"{len(shard_paths)} shard(s), {len(missing)} missing keys "
-        "(all expected choice-head params, randomly initialized)."
+        "(choice-head params + tied lm_head + untrained action/score embed -- see load_xr1_with_checkpoint docstring)."
     )
     return model
 

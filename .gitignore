@@ -7,3 +7,5 @@ miniconda3/
 __pycache__/
 .pytest_cache/
 data_investigation/
+/data
+smoke_test_output/
