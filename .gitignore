@@ -6,3 +6,4 @@ miniconda3/
 *.log
 __pycache__/
 .pytest_cache/
+data_investigation/
