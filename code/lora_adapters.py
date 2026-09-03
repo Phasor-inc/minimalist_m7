@@ -34,8 +34,10 @@ class LoRALinear(nn.Module):
         self.rank = rank
         self.scaling = alpha / rank
 
-        self.lora_A = nn.Parameter(torch.empty(rank, in_features))
-        self.lora_B = nn.Parameter(torch.zeros(out_features, rank))
+        dtype = base_linear.weight.dtype
+        device = base_linear.weight.device
+        self.lora_A = nn.Parameter(torch.empty(rank, in_features, dtype=dtype, device=device))
+        self.lora_B = nn.Parameter(torch.zeros(out_features, rank, dtype=dtype, device=device))
         nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
 
     def forward(self, x):
@@ -44,7 +46,7 @@ class LoRALinear(nn.Module):
         return base_out + self.scaling * lora_out
 
 
-def _replace_module(parent: nn.Module, attr_name: str, rank: float, alpha: float):
+def _replace_module(parent: nn.Module, attr_name: str, rank: int, alpha: float):
     base = getattr(parent, attr_name)
     if not isinstance(base, nn.Linear):
         raise TypeError(f"Expected nn.Linear at {attr_name}, got {type(base).__name__}")

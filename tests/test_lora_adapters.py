@@ -1,6 +1,7 @@
+import pytest
 import torch
 import torch.nn as nn
-from code.lora_adapters import LoRALinear, inject_lora_into_vlm_layers
+from code.lora_adapters import LoRALinear, inject_lora_into_vlm_layers, _replace_module
 
 
 class DummySelfAttn(nn.Module):
@@ -87,3 +88,29 @@ def test_inject_lora_only_target_modules_trainable():
     trainable = [n for n, p in vlm.named_parameters() if p.requires_grad]
     assert all("lora_A" in n or "lora_B" in n for n in trainable)
     assert len(trainable) == 14  # 7 target modules x 2 (lora_A, lora_B) x 1 layer
+
+
+def test_lora_linear_scaling_arithmetic_with_nonzero_B():
+    base = nn.Linear(8, 8)
+    rank, alpha = 4, 8.0
+    lora = LoRALinear(base, rank=rank, alpha=alpha)
+
+    torch.manual_seed(1)
+    lora.lora_B.data.copy_(torch.randn(8, rank))
+
+    x = torch.randn(3, 8)
+    base_out = base(x)
+    expected = base_out + (alpha / rank) * (x @ lora.lora_A.T @ lora.lora_B.T)
+    actual = lora(x)
+    assert torch.allclose(actual, expected, atol=1e-6)
+
+
+def test_replace_module_raises_type_error_for_non_linear():
+    class Holder(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.not_linear = nn.ReLU()
+
+    holder = Holder()
+    with pytest.raises(TypeError):
+        _replace_module(holder, "not_linear", rank=4, alpha=8.0)
