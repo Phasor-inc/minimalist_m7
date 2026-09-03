@@ -1,0 +1,8 @@
+vendor/
+checkpoints/
+miniconda3/
+*.pt
+*.safetensors
+*.log
+__pycache__/
+.pytest_cache/
