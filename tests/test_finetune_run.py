@@ -1,4 +1,5 @@
 import os
+import random
 
 import pytest
 import torch
@@ -6,6 +7,7 @@ import torch.nn as nn
 
 from code.finetune_run import (
     _ensure_data_symlink,
+    _seed_everything,
     compute_total_loss,
     save_trainable_state,
     verify_trainable_params,
@@ -247,3 +249,44 @@ def test_save_trainable_state_creates_output_dir_if_missing(tmp_path):
 
     assert os.path.isdir(str(output_dir))
     assert os.path.exists(out_path)
+
+
+# ---------------------------------------------------------------------------
+# _seed_everything -- the most load-bearing piece of pure logic for Task 9's
+# ablation validity (see NOTES.md "Task 7 addendum: CUDA determinism
+# investigation" for what it does and does NOT guarantee). These tests only
+# check what it's actually responsible for: RNG-stream reproducibility for
+# stdlib random and torch -- not CUDA kernel-level determinism, which is a
+# real, separate, documented limitation, not something this function claims
+# to solve.
+# ---------------------------------------------------------------------------
+
+
+def test_seed_everything_same_seed_reproduces_random_and_torch_draws():
+    _seed_everything(123)
+    random_draw_1 = random.random()
+    torch_draw_1 = torch.rand(1)
+
+    _seed_everything(123)
+    random_draw_2 = random.random()
+    torch_draw_2 = torch.rand(1)
+
+    assert random_draw_1 == random_draw_2
+    assert torch.equal(torch_draw_1, torch_draw_2)
+
+
+def test_seed_everything_different_seed_produces_different_draws():
+    """Rules out a no-op/trivially-passing implementation: different seeds
+    must produce different draws, not just "same seed reproduces itself"
+    (which a function that seeds nothing at all could also satisfy by
+    accident if called with the exact same global RNG state each time)."""
+    _seed_everything(1)
+    random_draw_1 = random.random()
+    torch_draw_1 = torch.rand(1)
+
+    _seed_everything(2)
+    random_draw_2 = random.random()
+    torch_draw_2 = torch.rand(1)
+
+    assert random_draw_1 != random_draw_2
+    assert not torch.equal(torch_draw_1, torch_draw_2)

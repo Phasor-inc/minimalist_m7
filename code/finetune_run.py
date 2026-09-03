@@ -436,16 +436,72 @@ def build_arg_parser():
     parser.add_argument("--vlm-hidden-size", type=int, default=2560, help="Verified in Task 2 -- see NOTES.md.")
     parser.add_argument("--adapter-target-dim", type=int, default=512)
     parser.add_argument("--memory-size", type=int, default=256)
-    parser.add_argument("--num-workers", type=int, default=2)
+    parser.add_argument(
+        "--num-workers",
+        type=int,
+        default=0,
+        help="DataLoader worker count. Default 0 (main-process loading) is deliberate: JsonDataset's "
+        "augmentation/prompt-selection (_augment/_prompt) uses stdlib random calls inside worker "
+        "processes, which are NOT covered by build_dataloader()'s seeded torch.Generator -- so num_workers>0 "
+        "makes augmentation/prompt choice non-reproducible across runs even with a matching --seed. Only "
+        "raise this for faster throughput on a run where that specific nondeterminism doesn't matter (e.g. "
+        "not a paired --seed ablation comparison); see NOTES.md.",
+    )
     parser.add_argument("--log-every", type=int, default=1)
     return parser
 
 
 def _seed_everything(seed: int):
+    """Seeds Python's stdlib random and torch's RNGs, plus sets cudnn to its
+    deterministic/non-benchmarking mode.
+
+    LIMITATION, investigated for real against this pod's actual torch/CUDA
+    stack (not assumed) -- see NOTES.md "Task 7 addendum: CUDA determinism
+    investigation" for the full evidence: seeding RNG streams does NOT make
+    CUDA kernel dispatch bit-deterministic once .backward() runs during real
+    training. xr1()'s real, active attn_implementation is
+    "flash_attention_2" (explicit in XR1.py's _build_model(), not "sdpa").
+    flash-attention's backward pass uses atomic-add reductions across KV
+    blocks that live entirely outside PyTorch's ATen dispatcher -- it is NOT
+    a registered op under torch.use_deterministic_algorithms(), so no
+    PyTorch-level flag reaches it at all.
+
+    torch.use_deterministic_algorithms(True) is deliberately NOT enabled
+    here. Empirically confirmed on this pod: a bare `x @ w` matmul backward
+    on CUDA raises `RuntimeError: ... uses CuBLAS ... you must set an
+    environment variable CUBLAS_WORKSPACE_CONFIG` under that flag. Every
+    nn.Linear backward in this ~5.4B-param model would hit the same error,
+    so enabling the flag here would break every real training step
+    immediately unless CUBLAS_WORKSPACE_CONFIG is also set as a process env
+    var before CUDA initializes -- something this function (called well
+    after argparse/model construction) cannot reliably guarantee. And even
+    if that were solved, it would buy nothing against the actual bottleneck:
+    flash-attention's kernel doesn't consult
+    torch.are_deterministic_algorithms_enabled() at all, so the flag adds
+    real breakage risk for zero benefit on the dominant non-determinism
+    source in this model.
+
+    Real finding worth flagging for later: the installed flash_attn==2.8.3
+    itself DOES expose a `deterministic=False` kwarg on flash_attn_func /
+    flash_attn_varlen_func (confirmed via inspect.signature on this pod) --
+    but the installed transformers==4.57.1's flash_attention_2 integration
+    (transformers/integrations/flash_attention.py) does not forward that
+    kwarg through at all (grepped directly, zero matches). Reaching a truly
+    deterministic attention backward would require monkeypatching/wrapping
+    that integration to pass deterministic=True -- a real, out-of-scope
+    architecture change for this fix cycle, not attempted here.
+
+    cudnn.deterministic/cudnn.benchmark ARE set below: low-risk (confirmed
+    they don't raise, unlike use_deterministic_algorithms), and give real
+    (if minor) determinism benefit for the vision tower's Conv3d
+    patch-embed path, which does go through cudnn.
+    """
     random.seed(seed)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 
 def main():
