@@ -218,3 +218,104 @@ Confirmed via real `dynamic_eval.py init` log: **`Initialized 2500 rollout jobs 
 **Real ETA extrapolated from this measured rate:** 2500 × ~67.5s ≈ 168,750s ≈ **~46.9 hours (~1.95 days)** of continuous single-GPU serving — this is the expected, substantially-longer-than-M7's-own-eval cost of 1 GPU vs. their 8-GPU reference config, exactly as this task's own instructions anticipated. GPU headroom re-confirmed healthy at every check during this launch (`memory.used` stayed in the 11-14GB range, i.e. model + one active rollout — ~35GB+ free throughout), ODI's PID/footprint unchanged at every check.
 
 **Status at the end of this task: launched and confirmed healthy, not yet complete.** Per this task's explicit scope ("launching and confirming healthy operation is enough to report DONE; Task 9 ... is what will pick up the completed results"), the final `episode_success_rate` from `eval_results/baseline/*/summary.json` is **not yet available** and is **not** recorded here — do not assume or backfill a number. Whoever next touches this (a continuation of this task, or Task 9 itself) should first check whether `eval_results/baseline/<run-id>/summary.json` now exists (the run may have finished in the interim) before deciding whether to keep waiting or re-launch.
+
+## Task 9 — LoRA-only vs LoRA+M7 ablation against the real 79.44/57.62/30.75/56.88 baseline
+
+### Step 1 — real `config.yaml` findings (Hydra tree read directly, not fabricated)
+
+`vendor/Xiaomi-Robotics-1/xr1/configs/config.yaml` is a 4-line Hydra composition root:
+
+```yaml
+defaults:
+  - _self_
+  - data: load_washer
+  - model: posttrain
+  - trainer: deepspeed
+```
+
+Read all three composed files directly:
+
+- `configs/data/load_washer.yaml` — `data.params.train_datasets.batch_size: 48`, `action_length: 30`, 5 real `paths` entries (`data/json1.json`..`json5.json`), and the real per-dim `mean`/`std`/`q01`/`q99` normalization stats (`mean`/`std` shape `(30, 60)`, `q01`/`q99` shape `(1, 60)`) — these are exactly the values `code/finetune_run.py`'s `build_dataloader()` already loads directly via PyYAML per Task 7's NOTES, so nothing new needed here for invocation, just confirmation the real file matches what Task 7 already wired.
+- `configs/model/posttrain.yaml` — `model.params.pretrained: ???` (a required, unset Hydra field — the checkpoint path is expected to be injected via Hydra CLI override, e.g. `model.params.pretrained=<path>`, in their own training entrypoint). No output-dir-relevant keys here.
+- `configs/trainer/deepspeed.yaml` — the real keys controlling output/checkpoint location and training length:
+  - `trainer.default_root_dir: "./test/"` — the root directory Lightning-style checkpointing would write under.
+  - `trainer.project: "demo"` / `trainer.exp_name: "test"` — subdirectory naming components composed under `default_root_dir`.
+  - `trainer.save_interval: 10000` — checkpoint-save frequency in steps.
+  - `trainer.max_steps: 10000` — total training steps (their own default, full pretraining scale, not applicable to this small-data LoRA ablation).
+  - `trainer.ckpt_path: null` — resume-from-checkpoint path.
+  - `trainer.seed: 42` — confirms `code/finetune_run.py --seed 42`'s default was chosen to match their own convention, not arbitrary.
+
+**Direct-invocation confirmation: works for a real reason, no need to fight Hydra.** `code/finetune_run.py` (built in Task 7) never imports Hydra or `configs/config.yaml` at all — it has its own plain `argparse` CLI (`--checkpoint`, `--output-dir`, `--seed`, `--use-m7-consolidation`, `--total-steps`, etc., confirmed via `python3 -m code.finetune_run --help`) and reads `configs/data/load_washer.yaml` directly via PyYAML only for the normalization-stats/batch-size/action-length values, bypassing Hydra's `@package _global_`/override-composition machinery entirely. This is exactly the plan's expected/preferred path — `compute_total_loss` and the training-loop wiring below it were written in Task 7 as plain, directly-callable functions specifically so Task 9 wouldn't need Hydra CLI overrides (`model.params.pretrained=...` etc.) at all. Confirmed working by running `--help` successfully (`python3 -m code.finetune_run --help`, must be run as a module from the repo root — `python3 code/finetune_run.py` fails with `ModuleNotFoundError: No module named 'code.lora_adapters'` since `code/` is a plain package, not a script directory). No real reason found to fall back to Hydra; direct invocation used for both ablation legs.
+
+### Step 2 — real `--total-steps` budget chosen: **220**
+
+Real dataset size (confirmed in Task 6/7): `xr1_post_train_demo` = 5 trajectories, 2120 frames total. `load_washer.yaml`'s real `batch_size: 48` → 2120/48 ≈ 44.2 batches/epoch. Chose **220 total steps = 5 epochs** over this tiny single-task dataset:
+- Large enough to give the LoRA adapters (and, in the M7 leg, the adapter/memory-core) repeated exposure to all 5 real trajectories multiple times each, rather than a single partial pass (Task 7's smoke tests only ever ran 2 steps, `--total-steps 20` is the script's own smoke-test-scale default — neither is a real training budget).
+- Small enough to stay a reasonable real wall-clock cost given this is one of *four* long-running phases this task must sequence (train LoRA-only, eval LoRA-only [~47h per Task 8's measured single-GPU throughput], train LoRA+M7, eval LoRA+M7 [~47h]) — the eval sweeps dominate wall-clock cost by roughly two orders of magnitude regardless of the exact training budget chosen here, so there is little marginal cost to a modest, real, multi-epoch training budget, but no reason to inflate it arbitrarily either given the known zero-task-overlap ceiling on how much this fine-tune can plausibly move the official eval numbers (see "Task 8/9 eval scope resolution" above).
+- All other hyperparameters left at `code/finetune_run.py`'s own real, already-verified-non-placeholder defaults: `--batch-size 48` (matches `load_washer.yaml` exactly), `--action-length 30` (matches exactly), `--lr 1e-4`, `--lora-rank 4`, `--lora-alpha 8.0`, `--consolidation-weight 0.1`, `--vlm-hidden-size 2560` (Task 2-verified), `--adapter-target-dim 512`, `--memory-size 256`, `--num-workers 0` (required per Task 7's documented reproducibility gotcha — do not override), `--seed 42` (both legs, identical, load-bearing for the ablation's validity per Task 7's NOTES).
+
+### Task 9 gradient-flow re-verification (real, ground-truth check against the actual production run, not just Task 7's old smoke-test evidence)
+
+Real LoRA-only training (Step 2) was launched, and the same `UserWarning: None of the inputs have requires_grad=True. Gradients will be None` fired during its first forward pass (from `torch/utils/checkpoint.py`, same as Task 7's smoke tests). Before letting a genuinely slow first real step (batch-size 48, real video-decode CPU work) run to completion, this warning was re-investigated from scratch against this specific run, not assumed benign from the old Task 7 note alone.
+
+**Traced the real checkpointed call:** `vendor/Xiaomi-Robotics-1/xr1/mibot/models/VLA/XR1.py` line 235, inside `xr1()._build_model()`'s `ffn_gradient_checkpointing` block — wraps each decoder layer's `mlp.forward` as `torch.utils.checkpoint.checkpoint(forward, x, use_reentrant=False)`. The *only* explicit tensor argument passed to `checkpoint()` is `x` (the MLP block's input activation, an intermediate tensor from upstream attention output) — none of `mlp`'s own parameters (or their `LoRALinear` wrapper's `lora_A`/`lora_B`) are passed as explicit arguments; they're captured via closure (`module=mlp`). The warning is checking only the explicit tensor args (`x`), so it fires regardless of whether the closure-captured LoRA parameters require grad — this is expected, not a red flag on its own.
+
+**Real, definitive ground-truth check performed (killed the slow batch-48 run first — only seconds into step 0, nothing lost — to run a fast, real, small-batch diagnostic against the identical production code path):** wrote a throwaway script (deleted after use) that called the exact real `code/finetune_run.py` functions — `load_xr1_with_checkpoint`, `freeze_and_inject_lora`, `build_dataloader`, `run_training_step`, real `AdamW` optimizer — with `batch_size=8`/`total_steps=3` for speed, and inspected two real `LoRALinear` modules directly: `layer0.self_attn.q_proj` (NOT inside the checkpointed segment — a control) and `layer[-1].mlp.down_proj` (IS inside the checkpointed segment — the one actually in question).
+
+Real console output:
+```
+step 0: loss=6.353541 attn(layer0 q_proj) grad_norm: A=0.0 B=0.01123046875 | mlp(last layer down_proj, CHECKPOINTED) grad_norm: A=0.0 B=0.11279296875
+step 1: loss=7.857741 attn(layer0 q_proj) grad_norm: A=0.001617431640625 B=0.01104736328125 | mlp(last layer down_proj, CHECKPOINTED) grad_norm: A=0.0810546875 B=0.1103515625
+step 2: loss=10.443092 attn(layer0 q_proj) grad_norm: A=0.00341796875 B=0.01409912109375 | mlp(last layer down_proj, CHECKPOINTED) grad_norm: A=0.173828125 B=0.138671875
+
+DiT weight sum before=87388.32329446077 after=87388.32329446077 (must match exactly): MATCH
+
+=== DEFINITIVE before/after weight comparison after 3 real optimizer.step() calls ===
+attn (layer0 q_proj, NOT checkpointed)   lora_B changed: True  max|delta|=0.00030327
+attn (layer0 q_proj, NOT checkpointed)   lora_A changed: True  max|delta|=0.00024414
+mlp  (last layer down_proj, CHECKPOINTED) lora_B changed: True  max|delta|=0.00030327
+mlp  (last layer down_proj, CHECKPOINTED) lora_A changed: True  max|delta|=0.00016785
+```
+
+**Conclusion, backed by real numbers, not assumption: gradients ARE flowing correctly through the checkpointed MLP segment into its LoRA weights.** Both the checkpointed (`mlp.down_proj`) and non-checkpointed (`attn.q_proj`) `LoRALinear` modules show real, nonzero gradient norms every step and real, nonzero raw-weight deltas after 3 real `optimizer.step()` calls — the checkpointed module's gradients are not smaller or more suspect than the non-checkpointed control's. `lora_A`'s grad is exactly `0.0` at step 0 in both modules (expected LoRA math: `dL/dA` flows only through `B`, and `B` is zero-initialized by design, so `dL/dA` is mathematically exactly zero on the very first backward regardless of checkpointing — matches Task 7's own documented explanation) and becomes nonzero from step 1 onward once `B` moves off zero. `DiT` weight-sum before/after matched exactly, confirming the frozen action head stayed untouched throughout. This independently reproduces and reconfirms Task 7's own "Real gradient-flow scare, investigated and resolved" finding, now against Task 9's actual code path rather than relying on that earlier note alone — the warning is a real but harmless side effect of `use_reentrant=False`'s non-reentrant checkpointing correctly back-propagating into closure-captured module parameters even when the explicit checkpointed input tensor doesn't itself require grad. **Training was not a no-op; safe to proceed.** The real LoRA-only training run (killed to free resources for this diagnostic) was relaunched immediately after with identical arguments.
+
+### Step 3 — LoRA-only training completed (real, verified)
+
+Real LoRA-only training run (relaunched after the gradient-flow diagnostic above) ran to completion: `checkpoints/lora_only_train.log` tail confirms `step 220/220 total_loss=4.495042` and `Verified DiT untouched: weight-sum before=87388.32329446077 after=87388.32329446077` (exact match, same invariant checked at every prior stage). Saved delta: `checkpoints/lora_only/finetuned_delta.pt` (16.7MB, 504 LoRA tensors, `use_m7_consolidation: False`).
+
+### Step 4 — real, verified merge into a deployable checkpoint
+
+`code/merge_lora_for_eval.py` (written by a prior session, untracked until this commit) was read in full before trusting it: it re-injects LoRA into a fresh `load_xr1_with_checkpoint()` load, loads the real saved `lora_state_dict`, folds `scaling*(lora_B@lora_A)` into each target `Linear.weight` in place, unwraps `LoRALinear` back to plain `nn.Linear`, and exports a state dict restricted to exactly the baseline checkpoint's own `model.safetensors.index.json` key set (1120/1135 tensors — the 15 dropped keys are the same choice-head/tied-lm_head/untrained-embed keys the baseline checkpoint itself never shipped, per Task 7's NOTES).
+
+Ran for real: `python3 -m code.merge_lora_for_eval --delta checkpoints/lora_only/finetuned_delta.pt --output-dir checkpoints/lora_only_merged`. Real console output: `Loaded 504 real fine-tuned LoRA tensors`, `Merged and unwrapped 252 LoRALinear modules back to plain nn.Linear`, `Exporting 1120/1135 tensors`, `Wrote merged, deployable checkpoint to checkpoints/lora_only_merged`. Output dir verified: identical file set to the baseline checkpoint except a single merged `model.safetensors` (10.1GB, no `model.safetensors.index.json`, no shard files — a valid single-file safetensors HF checkpoint) in place of the baseline's 3 shards + index; `du -sh` = 9.5G, matching the baseline checkpoint's own size exactly.
+
+**Real load smoke test, not just a code read** — loaded the merged checkpoint via the *exact* mechanism `deploy/server.py` uses in production (`AutoModel.from_pretrained(model_path, trust_remote_code=True, attn_implementation="flash_attention_2", dtype=torch.bfloat16).cuda().to(torch.bfloat16)`), on GPU, in the `mibot` env: succeeded, `LOAD SUCCESS: <class 'transformers_modules.lora_only_merged.modeling_mibot.MiBoTForActionGeneration'>`, `num params: 5053149696` (matches the base model's real param count). No fixes needed to the merge script — it worked as written on the first real end-to-end try.
+
+### Step 5 — real LoRA-only eval launched via the same 3-server pattern Task 8's baseline used
+
+**Real, observed fact about Task 8's baseline that this session's earlier NOTES entries (written mid-Task-8) don't yet reflect**: the baseline run (`eval_results/baseline/20260904-004234/summary.json`) is now complete — real final numbers, reproduced independently via `split_summary.py` (an untracked helper script from a prior session, also committed now): `atomic_seen 79.44% (715/900)`, `composite_seen 57.63% (461/800)`, `composite_unseen 30.75% (246/800)`, `overall 56.88% (1422/2500)`. Total wall time: `2026-09-04 00:44:46` → `2026-09-05 18:20:25` ≈ **41.6 hours** (faster than the ~46.9h single-worker extrapolation in the earlier note) — confirmed via `eval_results/baseline/scheduler/20260904-004234/logs/`, which has **3** worker logs (`worker-0/1/2.log`), i.e. the baseline run was itself scaled from 1 to 3 parallel workers partway through, not run single-worker the whole time.
+
+Applied the same **3-server** pattern for the LoRA-only ablation leg, given real headroom (GPU was fully idle, 5.1GB/49.1GB used, before this launch — the 6 paused M7 trimodal jobs use no GPU while stopped, and ODI's job is CPU-only):
+- `bash scripts/deploy.sh /workspace/xr1-m7-submission/checkpoints/lora_only_merged 3 1` — 3 model servers on ports 10086-10088, all GPU 0. Real GPU memory after all 3 loaded: 36.0GB/49.1GB used (~13GB free headroom for activations across 3 concurrent rollouts) — confirmed via `nvidia-smi` and by capturing each tmux pane (`Model loaded.` / `Server running on localhost:<port>...` printed for real in all 3 panes).
+- Real blocker hit and fixed: `launch_robocasa365.sh` failed immediately with `conda: command not found` when launched via a bare `nohup bash ... &` — this is the same "conda not initialized in non-interactive shells" gap Task 8 already documented (its `conda init bash` fix only activates for interactive shells; a `nohup`'d background bash is non-interactive). Fixed by explicitly `source /workspace/xr1-m7-submission/miniconda3/etc/profile.d/conda.sh` in the parent shell before the `nohup ... &`, which exports `PATH` (including the real `conda` executable under `miniconda3/condabin`) to the child process's environment — env vars are inherited by child processes regardless of shell-function scoping, so this was sufficient without needing a tmux-pane workaround this time.
+- `CONDA_ENV=robocasa_365 bash scripts/launch_robocasa365.sh 3 eval_results/lora_only /workspace/xr1-m7-submission/checkpoints/lora_only_merged` launched via `nohup ... & disown`, survives independent of the SSH session. Real `dynamic_eval.py init` log: **`Initialized 2500 rollout jobs for 50 tasks`** (identical to baseline — same `target50` default task-set, same protocol). Real per-worker claim confirmed in all 3 worker logs (`gpu-0` claimed rollout 0, `gpu-1` claimed rollout 2, `gpu-2` claimed rollout 1 — genuine parallel dispatch, not a stuck queue). `errors/` directory confirmed to not yet contain any files.
+- Run ID: `20260905-224228`. Results will land at `eval_results/lora_only/20260905-224228/summary.json` when complete.
+
+**Status: LoRA-only eval launched and confirmed healthy with real episode claims across all 3 workers. Not yet complete — given the baseline's real 3-worker-scaled runtime was ~41.6h, this leg should be expected to take a similar order of magnitude, though exact throughput on 3 concurrent workers from the start (vs. baseline's partial-scale-up) was not yet measured at hand-off time. Whoever picks this up next should check `eval_results/lora_only/20260905-224228/summary.json` for completion before doing anything else with the 3 model servers or workers.**
+
+### Step 6 — real GPU headroom check: LoRA+M7 training deferred, not launched concurrently
+
+Per this task's explicit instruction to check real headroom rather than assume training/eval can coexist: sampled `nvidia-smi` 5 times over ~20s while the LoRA-only 3-worker eval was actively running. Real readings: `42453, 42453, 40644, 40644, 41597` MiB used out of `49140` MiB total — stable in the 40.6-42.5GB range (fluctuating with which of the 3 concurrent rollouts is mid-inference), i.e. **only ~6.7-8.5GB free, not comfortably growing higher**.
+
+**Decision: do not launch LoRA+M7 training concurrently with this eval sweep.** Reasoning: a second full `xr1()` model load alone costs ~10.3GB (per Task 8's own single-server measurement), before even accounting for batch-size-48 training activations through the 5B-param VLM+DiT — more than the ~6.7-8.5GB currently free. The real time this concurrency would have saved is small regardless: Step 3's actual LoRA-only training run took **~26.6 minutes** wall time for 220 steps (`elapsed=1596.7s` per `checkpoints/lora_only_train.log`), against each eval sweep's real ~41.6h runtime — so even a fully successful concurrent run would only save ~27 minutes off an ~83+ hour two-sweep critical path (<0.6%), not worth risking OOM-driven instability in a currently-healthy, hours-into-a-multi-day eval run. **LoRA+M7 training (Step 4 per the task's plan) is deferred until the LoRA-only eval sweep (run `20260905-224228`) completes and frees the 3 model servers' ~36GB.**
+
+**Real status at hand-off:**
+- LoRA-only eval: run `20260905-224228`, launched `22:43:21`, confirmed healthy (all 3 workers alive, 9 rollouts claimed with zero errors as of the last check at hand-off, `errors/` dir empty). Not yet complete. **Next check: `cat eval_results/lora_only/20260905-224228/summary.json` — if present, the sweep is done; run `python3 split_summary.py eval_results/lora_only/20260905-224228/summary.json` for the atomic/composite breakdown.**
+- LoRA+M7 training: **not started.** Once the above eval completes, kill the 3 `deploy/server.py` processes (or just let `launch_robocasa365.sh`'s own trap handle worker cleanup — the servers themselves are separate tmux-session processes and must be killed manually, e.g. `tmux kill-session -t model_servers`), then run:
+  ```
+  cd /workspace/xr1-m7-submission
+  source miniconda3/etc/profile.d/conda.sh && conda activate mibot
+  python3 -m code.finetune_run --checkpoint checkpoints/Xiaomi-Robotics-1-RoboCasa365 --output-dir checkpoints/lora_plus_m7 --seed 42 --total-steps 220 --num-workers 0 --use-m7-consolidation
+  ```
+  then merge (`python3 -m code.merge_lora_for_eval --delta checkpoints/lora_plus_m7/finetuned_delta.pt --output-dir checkpoints/lora_plus_m7_merged`) and launch its eval the same way as Step 5 above (3 servers via `deploy.sh checkpoints/lora_plus_m7_merged 3 1`, then `CONDA_ENV=robocasa_365 bash scripts/launch_robocasa365.sh 3 eval_results/lora_plus_m7 checkpoints/lora_plus_m7_merged`, remembering the `source miniconda3/etc/profile.d/conda.sh` step first to avoid the `conda: command not found` gap documented above).
+- The 6 paused M7 trimodal PIDs and the ODI job were re-verified untouched at every check in this session; still paused/running respectively, as expected.
