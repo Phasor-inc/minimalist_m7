@@ -15,6 +15,7 @@ xr1_post_train_demo data via their own JsonDataset/CustomCollate classes --
 see NOTES.md "Task 7" for real smoke-test evidence.
 """
 import argparse
+import gc
 import glob
 import os
 import random
@@ -35,6 +36,12 @@ if XR1_SRC not in sys.path:
 from code.lora_adapters import inject_lora_into_vlm_layers  # noqa: E402
 from code.m7_memory_core import M7MemoryCore  # noqa: E402
 from code.pooled_hidden_adapter import PooledHiddenAdapter, pool_state_token_hidden_states  # noqa: E402
+from code.robocasa_lerobot_dataset import (  # noqa: E402
+    OFFICIAL_ATOMIC_SEEN_TASKS,
+    OFFICIAL_COMPOSITE_SEEN_TASKS,
+    RoboCasaLerobotDataset,
+    discover_task_roots,
+)
 
 
 def compute_total_loss(
@@ -117,21 +124,61 @@ def load_xr1_with_checkpoint(checkpoint_dir: str):
     not needed for inference) -- those stay randomly initialized from
     xr1()'s own construction. load_state_dict is therefore called with
     strict=False, and the missing keys are asserted to be exactly that
-    expected set below (not silently ignored)."""
+    expected set below (not silently ignored).
+
+    Real CPU-RAM peak fix (see NOTES.md "Task 9 pivot -- memory fix" for
+    the full before/after measurement): the naive approach of
+    `state_dict.update(load_file(shard)) for every shard` before calling
+    load_state_dict once holds ALL 3 shards (~9.5GB combined) resident in
+    CPU RAM AT THE SAME TIME as xr1()'s own already-allocated random-init
+    parameters (~10GB, bf16, unavoidably allocated at `xr1()` construction
+    time since this codebase doesn't build the model via HF's
+    `from_pretrained` -- `low_cpu_mem_usage=True` is an `AutoModel.
+    from_pretrained` kwarg with no direct equivalent on `xr1()`'s own
+    mibot-native construction path, confirmed by reading XR1.py directly:
+    `_build_model()` calls `Qwen3VLForConditionalGeneration._from_config`,
+    not `from_pretrained`, and there is no real trained checkpoint
+    available to lazily materialize from at construction time anyway --
+    the checkpoint is loaded separately, afterward, by this very function).
+    A full `torch.device("meta")` reconstruction was investigated and
+    rejected as too risky to land safely in the time available: several
+    real submodules (state_projector_choice/action_projector_choice/
+    score_projector_choice, vlm.model.action_embed/score_embed, tied
+    lm_head.weight, and any non-persistent buffers such as RoPE inv_freq)
+    are NOT covered by the checkpoint's own state dict and would need
+    hand-written, individually-verified re-materialization logic per
+    submodule to avoid leaving live `meta` tensors (unusable, silent
+    correctness risk) in the trained model -- a real engineering task on
+    its own, not attempted here given this fix needed to be verified today.
+
+    Instead: shards are loaded and assigned into the model ONE AT A TIME,
+    each shard's raw tensors freed (`del` + `gc.collect()`) before the next
+    shard is even read from disk. This bounds the state-dict-side peak to
+    the SIZE OF THE LARGEST SINGLE SHARD (~5.0GB) rather than all 3
+    combined (~9.5GB) -- xr1()'s own load_state_dict already only COPIES
+    into its own pre-existing parameter storage (no `assign=True` needed;
+    the model's own allocation is reused, not duplicated, so this doesn't
+    change anything about how the model's own memory is held, only how
+    much of the *checkpoint's own* raw bytes are ever resident at once).
+    Real, measured effect: see NOTES.md -- this reduced the observed
+    memory.current trough from ~23MB free to a real, meaningfully larger
+    margin on this pod's actual, shared ~167GB cgroup ceiling."""
     model = xr1()
     shard_paths = sorted(glob.glob(os.path.join(checkpoint_dir, "*.safetensors")))
     if not shard_paths:
         raise FileNotFoundError(f"no .safetensors shards found in {checkpoint_dir}")
 
-    state_dict = {}
+    loaded_keys = set()
     for shard_path in shard_paths:
-        state_dict.update(load_file(shard_path, device="cpu"))
+        shard_state_dict = load_file(shard_path, device="cpu")
+        _, unexpected = model.load_state_dict(shard_state_dict, strict=False)
+        if unexpected:
+            raise RuntimeError(f"checkpoint has keys xr1() does not define: {unexpected}")
+        loaded_keys.update(shard_state_dict.keys())
+        del shard_state_dict  # free THIS shard's ~5GB-at-most CPU copy before reading the next
+        gc.collect()
 
-    missing, unexpected = model.load_state_dict(state_dict, strict=False)
-    del state_dict  # free the ~9.5GB CPU-side copy before moving model to GPU
-
-    if unexpected:
-        raise RuntimeError(f"checkpoint has keys xr1() does not define: {unexpected}")
+    missing = sorted(set(model.state_dict().keys()) - loaded_keys)
 
     # Expected-missing prefixes: xr1()'s auxiliary choice-loss heads
     # (state_projector_choice / action_projector_choice / score_projector_choice)
@@ -253,43 +300,74 @@ def _ensure_data_symlink(data_dir: str):
     os.symlink(target, link_path)
 
 
-def build_dataloader(data_dir: str, batch_size: int, action_length: int, total_steps: int, num_workers: int, seed: int):
-    """Builds the real JsonDataset + CustomCollate DataLoader against the
+def build_dataloader(
+    data_dir: str,
+    batch_size: int,
+    action_length: int,
+    total_steps: int,
+    num_workers: int,
+    seed: int,
+    data_source: str = "xr1_demo",
+    robocasa_data_root: str | None = None,
+):
+    """Builds the real DataLoader for one of two real, on-disk data sources
+    (see NOTES.md "Task 9 pivot" for the full rationale):
+
+    data_source="xr1_demo" (default, preserves the original Task 7/8/9
+    behavior): the real JsonDataset + CustomCollate pipeline against the
     real xr1_post_train_demo data, using load_washer.yaml's own real
     mean/std/q01/q99 normalization stats (loaded directly from the YAML,
     not re-typed by hand) -- only the `paths` list is overridden, to point
     at the actual downloaded json file locations rather than
-    load_washer.yaml's own CWD-relative convention (see NOTES.md).
+    load_washer.yaml's own CWD-relative convention.
+
+    data_source="robocasa": the real RoboCasaLerobotDataset against the
+    real, on-task RoboCasa365 lerobot data (34 seen tasks -- 18
+    atomic_seen + 16 composite_seen -- under `robocasa_data_root`). No
+    load_washer.yaml stats involved -- RoboCasaLerobotDataset builds
+    already-final-form (raw, embodiment-correct) action/state tensors
+    itself; see code/robocasa_lerobot_dataset.py's module docstring for why
+    load_washer.yaml's stats/ACTION_PARTS layout don't apply here.
 
     Shuffling uses a dedicated torch.Generator seeded with `seed`, kept
     separate from the global torch RNG -- so the batch order a run sees is
     reproducible given the same seed regardless of how much global RNG
     state model/adapter construction consumed beforehand (see main())."""
-    washer_yaml_path = os.path.join(XR1_SRC, "configs", "data", "load_washer.yaml")
-    with open(washer_yaml_path) as yaml_file:
-        washer_cfg = yaml.safe_load(yaml_file)
-    train_cfg = washer_cfg["data"]["params"]["train_datasets"]
+    if data_source == "robocasa":
+        task_roots = discover_task_roots(
+            robocasa_data_root, OFFICIAL_ATOMIC_SEEN_TASKS, OFFICIAL_COMPOSITE_SEEN_TASKS
+        )
+        max_samples = total_steps * batch_size
+        dataset = RoboCasaLerobotDataset(task_roots, action_length, max_samples, seed)
+    elif data_source == "xr1_demo":
+        washer_yaml_path = os.path.join(XR1_SRC, "configs", "data", "load_washer.yaml")
+        with open(washer_yaml_path) as yaml_file:
+            washer_cfg = yaml.safe_load(yaml_file)
+        train_cfg = washer_cfg["data"]["params"]["train_datasets"]
 
-    json_dir = os.path.join(data_dir, "json")
-    paths = sorted(glob.glob(os.path.join(json_dir, "*.json")))
-    if not paths:
-        raise FileNotFoundError(f"no json files found under {json_dir}")
+        json_dir = os.path.join(data_dir, "json")
+        paths = sorted(glob.glob(os.path.join(json_dir, "*.json")))
+        if not paths:
+            raise FileNotFoundError(f"no json files found under {json_dir}")
 
-    _ensure_data_symlink(data_dir)
+        _ensure_data_symlink(data_dir)
 
-    params = {
-        "max_steps": total_steps,
-        "train_datasets": {
-            "batch_size": batch_size,
-            "action_length": action_length,
-            "paths": paths,
-            "mean": train_cfg["mean"],
-            "std": train_cfg["std"],
-            "q01": train_cfg["q01"],
-            "q99": train_cfg["q99"],
-        },
-    }
-    dataset = JsonDataset(params)
+        params = {
+            "max_steps": total_steps,
+            "train_datasets": {
+                "batch_size": batch_size,
+                "action_length": action_length,
+                "paths": paths,
+                "mean": train_cfg["mean"],
+                "std": train_cfg["std"],
+                "q01": train_cfg["q01"],
+                "q99": train_cfg["q99"],
+            },
+        }
+        dataset = JsonDataset(params)
+    else:
+        raise ValueError(f"unknown data_source {data_source!r}, expected 'xr1_demo' or 'robocasa'")
+
     collate_fn = CustomCollate()
     generator = torch.Generator()
     generator.manual_seed(seed)
@@ -409,7 +487,22 @@ def build_arg_parser():
     parser.add_argument(
         "--data-dir",
         default=os.path.join(REPO_ROOT, "data_investigation", "xr1_post_train_demo"),
-        help="Dir containing json/ and videos/ subdirs (xr1_post_train_demo layout).",
+        help="Dir containing json/ and videos/ subdirs (xr1_post_train_demo layout). Only used when "
+        "--data-source=xr1_demo.",
+    )
+    parser.add_argument(
+        "--data-source",
+        choices=["xr1_demo", "robocasa"],
+        default="xr1_demo",
+        help="xr1_demo (original, off-taxonomy 'Load washer' demo data) or robocasa (real, on-task "
+        "RoboCasa365 lerobot data -- see NOTES.md 'Task 9 pivot'). Task 9's real ablation must use "
+        "robocasa.",
+    )
+    parser.add_argument(
+        "--robocasa-data-root",
+        default="/workspace/data/robocasa_datasets/v1.0/pretrain",
+        help="Root containing {atomic,composite}/<TaskName>/<date>/lerobot/. Only used when "
+        "--data-source=robocasa.",
     )
     parser.add_argument("--use-m7-consolidation", action="store_true", help="Enable the LoRA+M7 ablation mode.")
     parser.add_argument(
@@ -538,7 +631,14 @@ def main():
     optimizer = torch.optim.AdamW(trainable_params, lr=args.lr)
 
     loader = build_dataloader(
-        args.data_dir, args.batch_size, args.action_length, args.total_steps, args.num_workers, args.seed
+        args.data_dir,
+        args.batch_size,
+        args.action_length,
+        args.total_steps,
+        args.num_workers,
+        args.seed,
+        data_source=args.data_source,
+        robocasa_data_root=args.robocasa_data_root,
     )
 
     # Re-seed immediately before the training loop. LoRA+M7 mode's
