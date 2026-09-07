@@ -319,3 +319,22 @@ Per this task's explicit instruction to check real headroom rather than assume t
   ```
   then merge (`python3 -m code.merge_lora_for_eval --delta checkpoints/lora_plus_m7/finetuned_delta.pt --output-dir checkpoints/lora_plus_m7_merged`) and launch its eval the same way as Step 5 above (3 servers via `deploy.sh checkpoints/lora_plus_m7_merged 3 1`, then `CONDA_ENV=robocasa_365 bash scripts/launch_robocasa365.sh 3 eval_results/lora_plus_m7 checkpoints/lora_plus_m7_merged`, remembering the `source miniconda3/etc/profile.d/conda.sh` step first to avoid the `conda: command not found` gap documented above).
 - The 6 paused M7 trimodal PIDs and the ODI job were re-verified untouched at every check in this session; still paused/running respectively, as expected.
+
+### Step 7 — LoRA-only eval complete (real, verified), GPU freed for LoRA+M7 leg
+
+Run `20260905-224228` finished for real. `eval_results/lora_only/scheduler/20260905-224228/errors/` has **0 files** across the whole run. All 3 worker logs report clean completion: `gpu-0 completed 835 rollouts`, `gpu-1 completed 834 rollouts`, `gpu-2 completed 831 rollouts` (835+834+831 = 2500, matches `num_episodes`). Real wall time from launch (`22:43:21` on 2026-09-05) to last worker completion (`06:44:43` on 2026-09-07) ≈ **32.0 hours** (faster than baseline's 41.6h — this leg ran all 3 workers in parallel from the very start, unlike baseline's partial scale-up).
+
+Real final numbers, reproduced via `python3 split_summary.py eval_results/lora_only/20260905-224228/summary.json`:
+
+| Split | LoRA-only | Baseline | Delta |
+|---|---|---|---|
+| atomic_seen | 80.67% (726/900) | 79.44% (715/900) | +1.23pp |
+| composite_seen | 56.50% (452/800) | 57.63% (461/800) | -1.13pp |
+| composite_unseen | 29.38% (235/800) | 30.75% (246/800) | -1.37pp |
+| overall | 56.52% (1413/2500) | 56.88% (1422/2500) | -0.36pp |
+
+**Honest read: essentially flat/noise-level vs baseline**, as expected given the training-data/eval-task mismatch documented in "Task 8/9 eval scope resolution" above — the only real training data (`xr1_post_train_demo`, 5 trajectories, single task "Load washer") has zero task overlap with any of the 50 official RoboCasa365 eval tasks. A small positive move on `atomic_seen` and small negative moves on both composite splits, netting to a small negative overall — not a result that supports either "LoRA fine-tuning helped" or "LoRA fine-tuning broke the model," just noise around the baseline given the data-scope constraint.
+
+**GPU freed for the next leg:** the 3 idle `deploy/server.py` processes serving `lora_only_merged` (PIDs 2261587/2261588/2261589, tmux session `model_servers`) were confirmed to be exactly the LoRA-only eval's servers (ports 10086-10088, all 3 windows checked via `tmux list-windows`) before killing. `tmux kill-session -t model_servers` freed GPU memory from 39.1GB/49.1GB used down to 5.1GB/49.1GB used (~44GB free). ODI's job (PID 2059736, CPU-only) and all 6 paused M7 trimodal PIDs (Tl/SIGSTOP state) re-verified untouched and unchanged immediately before and after this kill.
+
+Proceeding to LoRA+M7 training per the deferred plan in Step 6 above.
