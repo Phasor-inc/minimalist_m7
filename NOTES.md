@@ -412,3 +412,53 @@ Run ID: `20260907-192751`. Results will land at `eval_results/lora_only_realdata
 **Status at hand-off: LoRA-only-on-real-data training is DONE, merge is DONE and verified, eval is LAUNCHED and confirmed healthy, NOT yet complete.** Next real step once this eval sweep finishes: kill the 3 `lora_only_realdata_merged`-serving `deploy/server.py` processes (`tmux kill-session -t model_servers`, confirm the session is genuinely still serving this checkpoint first -- same discipline as the prior GPU hand-off), then train LoRA+M7 on the identical real RoboCasa data (`--use-m7-consolidation`, same `--seed 42 --total-steps 220 --batch-size 48 --num-workers 0 --data-source robocasa`, output to e.g. `checkpoints/lora_plus_m7_realdata`), merge, launch its eval to `eval_results/lora_plus_m7_realdata/`, then write the final four-way real comparison (baseline / lora_only_realdata / lora_plus_m7_realdata, plus the old washer-data lora_only for context) into NOTES.md once both real sweeps' `summary.json` files exist. **Use `python3 -u`, not plain `python3`, for any future `nohup ... &` background launch of `code.finetune_run` or any script whose progress will be checked via log-tailing** -- the buffering issue documented above is a real, repeatable trap on this pod's exact shell/redirect pattern, not a one-off.
 
 The 6 paused M7 trimodal PIDs and the ODI job (its own RSS climbing steadily over the course of this session, from ~16.5GB to ~19.7GB+ -- a real, independent, legitimate contributor to this pod's tight shared memory headroom, unrelated to and untouched by this work) were re-verified untouched at every check in this session.
+
+## Task 9 continuation — LoRA+M7 trained on real RoboCasa data, merged, eval launched
+
+**Real current state confirmed at start of this continuation session:** GPU 5140 MiB/49140 MiB used (0% util, just the 6 paused M7 trimodal contexts + baseline residue), cgroup `memory.current` 114.5GB / `memory.max` 167.0GB (~52.5GB headroom). No eval/deploy/finetune processes running, no tmux sessions -- confirmed the prior session's kill of the LoRA-only eval sweep (487/2500 episodes, deliberately abandoned per user decision to prioritize LoRA+M7) was clean. All 6 paused M7 trimodal PIDs (2054272/2054480/2054769/2056315/2056523/2056731) confirmed still `Tl` (SIGSTOP'd); ODI job (PID 2059736) confirmed still running, untouched, throughout this entire continuation.
+
+### Real LoRA+M7 training on RoboCasa data -- complete, verified
+
+Launched identically to the LoRA-only-on-realdata run per NOTES' own documented command, plus `--use-m7-consolidation`, using `python3 -u` from the start (no repeat of the buffering trap documented in the prior session):
+```
+python3 -u -m code.finetune_run --checkpoint checkpoints/Xiaomi-Robotics-1-RoboCasa365 \
+  --output-dir checkpoints/lora_plus_m7_realdata --seed 42 --total-steps 220 \
+  --batch-size 48 --num-workers 0 --data-source robocasa --use-m7-consolidation
+```
+Real console confirmation at start: `Trainable (LoRA) params in base model: 8,257,536 / 5,121,480,192 total` + `Trainable adapter+memory_core params: 3,053,762` -- exact match to Task 7's documented LoRA+M7-mode trainable-param counts, confirming M7 mode was genuinely active (not accidentally LoRA-only).
+
+**Completed for real**: `step 220/220 total_loss=0.961945` at `elapsed=1736.2s` (~28.9 minutes for the training loop -- closely matches LoRA-only-realdata's ~30.0 minutes, confirming the task's duration assumption directly rather than just trusting it). Real, meaningful loss trend: `xiaomi` sub-loss went from `2.28` (step 1) to commonly `0.7-1.2` by steps 200-220, `loss_mse` dropping sharply in the same pattern LoRA-only-realdata showed -- consistent with genuine on-task learning from the same real RoboCasa corpus. The `consolidation` term was present, finite, and real throughout: started at `0.2696` (step 1) and decayed to a stable `~0.0003-0.001` range by step 200+ (EMA-based memory core settling onto a consistent representation of the pooled hidden states as LoRA fine-tuning converges) -- confirms `M7MemoryCore`'s consolidation path was genuinely live and computing a real, changing signal end to end, not a frozen placeholder. `Verified DiT untouched: weight-sum before=87388.32329446077 after=87388.32329446077` -- exact match, identical to every prior run's invariant (baseline, both washer-data legs, LoRA-only-realdata). Saved `checkpoints/lora_plus_m7_realdata/finetuned_delta.pt` (28.9MB, 504 LoRA tensors + `adapter_state_dict`/`memory_core_state_dict`, matches the expected larger-than-LoRA-only delta size).
+
+### Real merge, verified
+
+`python3 -u -m code.merge_lora_for_eval --delta checkpoints/lora_plus_m7_realdata/finetuned_delta.pt --output-dir checkpoints/lora_plus_m7_realdata_merged` completed for real (exit code 0). Console: `Loaded delta: ... use_m7_consolidation=True, 504 lora tensors`, `Loaded 504 real fine-tuned LoRA tensors into the freshly-injected LoRA structure.`, `Merged and unwrapped 252 LoRALinear modules back to plain nn.Linear.`, `Exporting 1120/1135 tensors`. Output `model.safetensors`: exactly `10,106,433,456` bytes -- matches every prior merged checkpoint's size exactly (baseline/lora_only_merged/lora_only_realdata_merged all share this same byte count, as expected for a fixed-architecture merge).
+
+**Real load smoke test** (same mechanism `deploy/server.py` uses in production): `AutoModel.from_pretrained('checkpoints/lora_plus_m7_realdata_merged', trust_remote_code=True, attn_implementation='flash_attention_2', dtype=torch.bfloat16).cuda().to(torch.bfloat16)` -- succeeded: `LOAD SUCCESS: <class 'transformers_modules.lora_plus_m7_realdata_merged.modeling_mibot.MiBoTForActionGeneration'>`, `num params: 5053149696` (matches base model's real param count exactly). GPU memory returned to the 5140 MiB baseline after this smoke-test process exited -- no leak.
+
+### Real eval launched, confirmed healthy
+
+Same 3-server pattern as every prior eval leg, run from `vendor/Xiaomi-Robotics-1/` (the real cwd `scripts/` requires, per the prior session's own documented gotcha):
+```
+bash scripts/deploy.sh /workspace/xr1-m7-submission/checkpoints/lora_plus_m7_realdata_merged 3 1
+CONDA_ENV=robocasa_365 bash scripts/launch_robocasa365.sh 3 /workspace/xr1-m7-submission/eval_results/lora_plus_m7_realdata /workspace/xr1-m7-submission/checkpoints/lora_plus_m7_realdata_merged
+```
+All 3 model servers confirmed loaded via real `tmux capture-pane` output on all 3 named windows (`server-00`/`01`/`02`): `Model loaded.` / `Server running on localhost:10086/10087/10088...`. GPU memory rose to 36.0GB/49.1GB used with all 3 servers idle, then ~42.4GB/49.1GB during active rollouts -- consistent with every prior 3-server eval leg's measured range.
+
+Real `dynamic_eval.py` init log: **`Initialized 2500 rollout jobs for 50 tasks`** -- identical protocol/scale to every prior eval sweep this project (baseline, LoRA-only washer-data, LoRA-only realdata). Real per-worker claim confirmed directly from worker logs: `Worker gpu-0 claimed rollout 00000001 (CloseBlenderLid episode 1)`, `gpu-1 claimed rollout 00000000`, `gpu-2 claimed rollout 00000002` -- genuine parallel dispatch across all 3 workers within the first ~15s of launch. `errors/` directory confirmed to contain 0 files. All 3 worker PIDs (2660957/2660958/2660959) confirmed real and active with real CPU usage (72-92%).
+
+**Run ID: `20260907-233614`.** Results will land at `eval_results/lora_plus_m7_realdata/20260907-233614/summary.json` when complete -- expect roughly the same order of magnitude as the prior three eval sweeps (~32-42 hours for a 3-worker, 2500-episode, 50-task sweep on this single shared GPU).
+
+**Status at hand-off: LoRA+M7-on-real-data training is DONE and verified, merge is DONE and verified (including a real GPU load smoke test), eval is LAUNCHED and confirmed healthy with real per-worker episode claims and zero errors. NOT yet complete** (only ~15 rollouts old at last check) -- this is expected; per this task's own instructions, ending the turn here with the sweep still running is the correct, honest thing to do rather than fabricating a wait. Real ETA: ~32-42 hours from `23:37` on `2026-09-07`.
+
+**Next real step once `eval_results/lora_plus_m7_realdata/20260907-233614/summary.json` exists:** run `python3 split_summary.py eval_results/lora_plus_m7_realdata/20260907-233614/summary.json` for the atomic/composite/overall breakdown (verified against `OFFICIAL_ATOMIC_SEEN_TASKS`/`OFFICIAL_COMPOSITE_SEEN_TASKS`/`OFFICIAL_COMPOSITE_UNSEEN_TASKS` in `/workspace/M7/code/m7_robocasa_eval.py` -- confirmed identical to `split_summary.py`'s own hardcoded `TARGET_TASKS` lists, 18/16/16 tasks respectively), kill the 3 `lora_plus_m7_realdata_merged`-serving servers (`tmux kill-session -t model_servers`, after confirming via `tmux capture-pane` that the session is genuinely still serving this exact checkpoint, same discipline as every prior GPU hand-off), and write the final real comparison table into NOTES.md:
+
+| Run | atomic_seen | composite_seen | composite_unseen | Overall |
+|---|---|---|---|---|
+| Baseline (frozen) | 79.44% (715/900) | 57.63% (461/800) | 30.75% (246/800) | 56.88% (1422/2500) |
+| LoRA-only (washer-data, off-taxonomy, for reference only) | -- | -- | -- | 56.52% (1413/2500), see per-split table in "Step 7" above |
+| LoRA-only (real RoboCasa data) | *(pending: run `split_summary.py` on `eval_results/lora_only_realdata/20260907-192751/summary.json` once complete)* | | | |
+| LoRA+M7 (real RoboCasa data) | *(pending: `eval_results/lora_plus_m7_realdata/20260907-233614/summary.json`)* | | | |
+
+Note: the LoRA-only-realdata eval (run `20260907-192751`) was **deliberately, explicitly abandoned early by the user** at 487/2500 episodes (19.5%) to prioritize this LoRA+M7 leg -- it is not complete and its `summary.json` (if the process was killed before writing one) may not exist at all, or may reflect a partial/undefined episode count. Whoever writes the final comparison must check `eval_results/lora_only_realdata/20260907-192751/` for whatever partial artifacts exist (do not assume a `summary.json` was written on a killed run) and report it as "incomplete, not directly comparable" rather than silently omitting it or fabricating a percentage from a partial count.
+
+The 6 paused M7 trimodal PIDs and the ODI job were re-verified untouched at every check in this continuation.
