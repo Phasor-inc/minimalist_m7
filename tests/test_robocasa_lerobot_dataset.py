@@ -23,6 +23,7 @@ from code.robocasa_lerobot_dataset import (
     ROBOCASA_ACTIVE_STATE_DIMS,
     ROBOCASA_STATE_DIM,
     RoboCasaLerobotDataset,
+    action_window_to_real_order,
     discover_task_roots,
     observation_state_to_14d,
     quat_xyzw_to_axis_angle,
@@ -87,6 +88,41 @@ def test_observation_state_to_14d_real_slice_layout():
 def test_observation_state_to_14d_rejects_wrong_shape():
     with pytest.raises(ValueError):
         observation_state_to_14d(np.zeros(10))
+
+
+def test_action_window_to_real_order_matches_convert_action_ground_truth():
+    # Real ground truth, read directly from
+    # /workspace/robocasa-deps/robocasa/robocasa/utils/env_utils.py's
+    # convert_action(): action[0:3]=end_effector_position,
+    # [3:6]=end_effector_rotation, [6:7]=gripper_close, [7:11]=base_motion,
+    # [11:12]=control_mode. The raw lerobot "action" column (per
+    # meta/modality.json) is ordered differently: base_motion[0:4],
+    # control_mode[4:5], end_effector_position[5:8],
+    # end_effector_rotation[8:11], gripper_close[11:12]. This test catches
+    # the real, shipped bug (NOTES.md "catastrophic collapse root cause")
+    # where the raw column order was copied straight into the action head
+    # with no remap at all.
+    raw = np.array(
+        [
+            # base_motion(4)      control_mode(1)  ee_position(3)     ee_rotation(3)      gripper_close(1)
+            [10.0, 11.0, 12.0, 13.0, 20.0, 30.0, 31.0, 32.0, 40.0, 41.0, 42.0, 50.0],
+        ],
+        dtype=np.float32,
+    )
+
+    remapped = action_window_to_real_order(raw)
+
+    assert remapped.shape == (1, 12)
+    np.testing.assert_allclose(remapped[0, 0:3], [30.0, 31.0, 32.0])  # end_effector_position
+    np.testing.assert_allclose(remapped[0, 3:6], [40.0, 41.0, 42.0])  # end_effector_rotation
+    np.testing.assert_allclose(remapped[0, 6:7], [50.0])  # gripper_close
+    np.testing.assert_allclose(remapped[0, 7:11], [10.0, 11.0, 12.0, 13.0])  # base_motion
+    np.testing.assert_allclose(remapped[0, 11:12], [20.0])  # control_mode
+
+
+def test_action_window_to_real_order_rejects_wrong_shape():
+    with pytest.raises(ValueError):
+        action_window_to_real_order(np.zeros((3, 10)))
 
 
 def test_discover_task_roots_real_directory_layout(tmp_path):

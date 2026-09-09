@@ -43,14 +43,36 @@ compose_state/build_action_mask/normalize_action_parts/normalize_quantile
   - The real RoboCasa lerobot data's own meta/modality.json (read directly
     off .../CloseFridge/20250819/lerobot/meta/modality.json, confirmed
     identical layout on other sampled tasks) gives the real raw-field slice
-    layout matching this exactly: observation.state[7:10]=
-    end_effector_position_relative, [10:14]=end_effector_rotation_relative
-    (quat xyzw), [14:16]=gripper_qpos, [0:3]=base_position, [3:7]=
-    base_rotation (quat xyzw); action[5:8]=end_effector_position,
-    [8:11]=end_effector_rotation, [11:12]=gripper_close, [0:4]=base_motion,
-    [4:5]=control_mode (12-dim total) -- i.e. this dataset's raw "action"
-    column IS already the real robocasa365 12-dim action-head target, no
-    transform needed beyond zero-padding into the 60-dim head.
+    layout: observation.state[7:10]=end_effector_position_relative,
+    [10:14]=end_effector_rotation_relative (quat xyzw), [14:16]=gripper_qpos,
+    [0:3]=base_position, [3:7]=base_rotation (quat xyzw); action[5:8]=
+    end_effector_position, [8:11]=end_effector_rotation, [11:12]=
+    gripper_close, [0:4]=base_motion, [4:5]=control_mode (12-dim total).
+
+  - **CORRECTED (post-mortem, see NOTES.md "catastrophic collapse root
+    cause"): the claim that this raw "action" column order IS already the
+    real robocasa365 12-dim action-head target was WRONG and was never
+    actually checked against the real ground truth.** The real ground truth
+    for what the model's 12 active action-head dims mean at inference time
+    is `robocasa.utils.env_utils.convert_action` (the function the real,
+    working eval client -- eval_robocasa365/entry.py -- calls on every
+    single env.step to turn the model's raw 12-dim output into an actual
+    robot command): `action[0:3]=end_effector_position`,
+    `action[3:6]=end_effector_rotation`, `action[6:7]=gripper_close`,
+    `action[7:11]=base_motion`, `action[11:12]=control_mode`. This is a
+    **completely different field order** from the raw lerobot parquet
+    "action" column's own order (base_motion, control_mode, ee_position,
+    ee_rotation, gripper_close). Copying the raw column order straight into
+    the model's action head (the original, buggy version of this loader)
+    silently trained the LoRA weights against a scrambled action-dimension
+    mapping -- e.g. the model's real ee_position slots [0:3] received
+    training targets that were actually raw base_motion values, its real
+    gripper_close slot [6:7] received a raw ee_position component, etc.
+    `__getitem__` below now explicitly permutes the raw 12-dim action window
+    into the real convert_action order before placing it in the 60-dim head.
+    The **state** side (observation_state_to_14d) was independently checked
+    against entry.py's real observation_to_state and was already correct --
+    only the action side had this bug.
   - xr1()'s own forward() (mibot/models/VLA/XR1.py, compute_flow_loss) was
     read directly and confirmed to apply action_mask as a genuine
     elementwise (timestep AND action-dim) boolean mask:
@@ -191,6 +213,31 @@ def quat_xyzw_to_axis_angle(quaternion: np.ndarray) -> np.ndarray:
         return np.zeros(3, dtype=np.float32)
     angle = 2.0 * np.arctan2(sin_half, np.clip(quaternion[3], -1.0, 1.0))
     return (xyz / sin_half * angle).astype(np.float32)
+
+
+def action_window_to_real_order(raw_action: np.ndarray) -> np.ndarray:
+    """Permutes the raw lerobot "action" column's own on-disk field order
+    (base_motion[0:4], control_mode[4:5], end_effector_position[5:8],
+    end_effector_rotation[8:11], gripper_close[11:12] -- per meta/
+    modality.json) into the REAL model action-head order the frozen
+    checkpoint was actually calibrated against and that the real eval
+    client's `robocasa.utils.env_utils.convert_action` uses to turn raw
+    model output back into a robot command: end_effector_position[0:3],
+    end_effector_rotation[3:6], gripper_close[6:7], base_motion[7:11],
+    control_mode[11:12]. See module docstring's "CORRECTED" note for the
+    real evidence this was a genuine bug, not a stylistic preference."""
+    raw_action = np.asarray(raw_action, dtype=np.float32)
+    if raw_action.shape[-1] != 12:
+        raise ValueError(f"expected a 12-dim raw action, got {raw_action.shape}")
+    base_motion = raw_action[..., 0:4]
+    control_mode = raw_action[..., 4:5]
+    ee_position = raw_action[..., 5:8]
+    ee_rotation = raw_action[..., 8:11]
+    gripper_close = raw_action[..., 11:12]
+    return np.concatenate(
+        [ee_position, ee_rotation, gripper_close, base_motion, control_mode],
+        axis=-1,
+    ).astype(np.float32)
 
 
 def observation_state_to_14d(state16: np.ndarray) -> np.ndarray:
@@ -357,6 +404,7 @@ class RoboCasaLerobotDataset(Dataset):
         state60[0, :ROBOCASA_ACTIVE_STATE_DIMS] = observation_state_to_14d(state_arr[frame_index])
 
         action_window = self._pad(action_arr[frame_index : frame_index + steps], steps)
+        action_window = action_window_to_real_order(action_window)
         action60 = np.zeros((self.action_length, ROBOCASA_ACTION_DIM), dtype=np.float32)
         action60[:, :ROBOCASA_ACTIVE_ACTION_DIMS] = action_window
 
