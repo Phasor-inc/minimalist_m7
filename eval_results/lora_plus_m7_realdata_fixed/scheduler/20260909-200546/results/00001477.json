@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00001477",
+    "env_name": "StackBowlsCabinet",
+    "task_index": 29,
+    "episode": 27,
+    "global_episode_index": 1477
+  },
+  "worker_id": "gpu-2",
+  "stats": {
+    "env_name": "StackBowlsCabinet",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 2100,
+    "episodes": [
+      {
+        "episode": 27,
+        "global_episode_index": 1477,
+        "seed": 1484,
+        "success": true,
+        "steps": 546
+      }
+    ]
+  }
+}

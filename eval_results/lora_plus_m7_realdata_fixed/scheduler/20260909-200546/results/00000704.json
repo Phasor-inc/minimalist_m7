@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00000704",
+    "env_name": "TurnOffStove",
+    "task_index": 14,
+    "episode": 4,
+    "global_episode_index": 704
+  },
+  "worker_id": "gpu-0",
+  "stats": {
+    "env_name": "TurnOffStove",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 750,
+    "episodes": [
+      {
+        "episode": 4,
+        "global_episode_index": 704,
+        "seed": 711,
+        "success": true,
+        "steps": 199
+      }
+    ]
+  }
+}

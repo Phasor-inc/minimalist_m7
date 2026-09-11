@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00001312",
+    "env_name": "ScrubCuttingBoard",
+    "task_index": 26,
+    "episode": 12,
+    "global_episode_index": 1312
+  },
+  "worker_id": "gpu-0",
+  "stats": {
+    "env_name": "ScrubCuttingBoard",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 1200,
+    "episodes": [
+      {
+        "episode": 12,
+        "global_episode_index": 1312,
+        "seed": 1319,
+        "success": true,
+        "steps": 808
+      }
+    ]
+  }
+}

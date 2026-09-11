@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00000068",
+    "env_name": "CloseFridge",
+    "task_index": 1,
+    "episode": 18,
+    "global_episode_index": 68
+  },
+  "worker_id": "gpu-1",
+  "stats": {
+    "env_name": "CloseFridge",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 900,
+    "episodes": [
+      {
+        "episode": 18,
+        "global_episode_index": 68,
+        "seed": 75,
+        "success": true,
+        "steps": 110
+      }
+    ]
+  }
+}

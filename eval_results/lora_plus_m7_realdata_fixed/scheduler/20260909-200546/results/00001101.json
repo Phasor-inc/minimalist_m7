@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00001101",
+    "env_name": "PackIdenticalLunches",
+    "task_index": 22,
+    "episode": 1,
+    "global_episode_index": 1101
+  },
+  "worker_id": "gpu-0",
+  "stats": {
+    "env_name": "PackIdenticalLunches",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 0,
+    "success_rate": 0.0,
+    "horizon": 3900,
+    "episodes": [
+      {
+        "episode": 1,
+        "global_episode_index": 1101,
+        "seed": 1108,
+        "success": false,
+        "steps": 3900
+      }
+    ]
+  }
+}

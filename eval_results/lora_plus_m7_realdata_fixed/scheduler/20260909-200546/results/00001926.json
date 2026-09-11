@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00001926",
+    "env_name": "CuttingToolSelection",
+    "task_index": 38,
+    "episode": 26,
+    "global_episode_index": 1926
+  },
+  "worker_id": "gpu-2",
+  "stats": {
+    "env_name": "CuttingToolSelection",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 0,
+    "success_rate": 0.0,
+    "horizon": 1200,
+    "episodes": [
+      {
+        "episode": 26,
+        "global_episode_index": 1926,
+        "seed": 1933,
+        "success": false,
+        "steps": 1200
+      }
+    ]
+  }
+}

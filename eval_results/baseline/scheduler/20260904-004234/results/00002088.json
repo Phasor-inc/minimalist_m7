@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00002088",
+    "env_name": "HeatKebabSandwich",
+    "task_index": 41,
+    "episode": 38,
+    "global_episode_index": 2088
+  },
+  "worker_id": "gpu-1",
+  "stats": {
+    "env_name": "HeatKebabSandwich",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 0,
+    "success_rate": 0.0,
+    "horizon": 2700,
+    "episodes": [
+      {
+        "episode": 38,
+        "global_episode_index": 2088,
+        "seed": 2095,
+        "success": false,
+        "steps": 2700
+      }
+    ]
+  }
+}

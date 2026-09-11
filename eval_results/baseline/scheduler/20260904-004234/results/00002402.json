@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00002402",
+    "env_name": "WashFruitColander",
+    "task_index": 48,
+    "episode": 2,
+    "global_episode_index": 2402
+  },
+  "worker_id": "gpu-1",
+  "stats": {
+    "env_name": "WashFruitColander",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 3150,
+    "episodes": [
+      {
+        "episode": 2,
+        "global_episode_index": 2402,
+        "seed": 2409,
+        "success": true,
+        "steps": 2759
+      }
+    ]
+  }
+}

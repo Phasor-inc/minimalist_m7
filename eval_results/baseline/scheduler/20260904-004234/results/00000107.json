@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00000107",
+    "env_name": "CloseToasterOvenDoor",
+    "task_index": 2,
+    "episode": 7,
+    "global_episode_index": 107
+  },
+  "worker_id": "gpu-0",
+  "stats": {
+    "env_name": "CloseToasterOvenDoor",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 450,
+    "episodes": [
+      {
+        "episode": 7,
+        "global_episode_index": 107,
+        "seed": 114,
+        "success": true,
+        "steps": 158
+      }
+    ]
+  }
+}

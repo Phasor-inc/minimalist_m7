@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00001514",
+    "env_name": "SteamInMicrowave",
+    "task_index": 30,
+    "episode": 14,
+    "global_episode_index": 1514
+  },
+  "worker_id": "gpu-0",
+  "stats": {
+    "env_name": "SteamInMicrowave",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 2100,
+    "episodes": [
+      {
+        "episode": 14,
+        "global_episode_index": 1514,
+        "seed": 1521,
+        "success": true,
+        "steps": 920
+      }
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00001407",
+    "env_name": "SetUpCuttingStation",
+    "task_index": 28,
+    "episode": 7,
+    "global_episode_index": 1407
+  },
+  "worker_id": "gpu-2",
+  "stats": {
+    "env_name": "SetUpCuttingStation",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 2400,
+    "episodes": [
+      {
+        "episode": 7,
+        "global_episode_index": 1407,
+        "seed": 1414,
+        "success": true,
+        "steps": 1095
+      }
+    ]
+  }
+}

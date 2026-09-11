@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00000674",
+    "env_name": "SlideDishwasherRack",
+    "task_index": 13,
+    "episode": 24,
+    "global_episode_index": 674
+  },
+  "worker_id": "gpu-1",
+  "stats": {
+    "env_name": "SlideDishwasherRack",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 450,
+    "episodes": [
+      {
+        "episode": 24,
+        "global_episode_index": 674,
+        "seed": 681,
+        "success": true,
+        "steps": 151
+      }
+    ]
+  }
+}

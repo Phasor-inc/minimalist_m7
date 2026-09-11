@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00000825",
+    "env_name": "TurnOnMicrowave",
+    "task_index": 16,
+    "episode": 25,
+    "global_episode_index": 825
+  },
+  "worker_id": "gpu-1",
+  "stats": {
+    "env_name": "TurnOnMicrowave",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 450,
+    "episodes": [
+      {
+        "episode": 25,
+        "global_episode_index": 825,
+        "seed": 832,
+        "success": true,
+        "steps": 133
+      }
+    ]
+  }
+}

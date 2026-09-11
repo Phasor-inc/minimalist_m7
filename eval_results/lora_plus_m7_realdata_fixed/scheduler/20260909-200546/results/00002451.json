@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00002451",
+    "env_name": "WeighIngredients",
+    "task_index": 49,
+    "episode": 1,
+    "global_episode_index": 2451
+  },
+  "worker_id": "gpu-2",
+  "stats": {
+    "env_name": "WeighIngredients",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 3000,
+    "episodes": [
+      {
+        "episode": 1,
+        "global_episode_index": 2451,
+        "seed": 2458,
+        "success": true,
+        "steps": 941
+      }
+    ]
+  }
+}

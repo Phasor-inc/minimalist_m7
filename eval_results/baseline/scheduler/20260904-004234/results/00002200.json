@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00002200",
+    "env_name": "PortionHotDogs",
+    "task_index": 44,
+    "episode": 0,
+    "global_episode_index": 2200
+  },
+  "worker_id": "gpu-2",
+  "stats": {
+    "env_name": "PortionHotDogs",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 0,
+    "success_rate": 0.0,
+    "horizon": 2250,
+    "episodes": [
+      {
+        "episode": 0,
+        "global_episode_index": 2200,
+        "seed": 2207,
+        "success": false,
+        "steps": 2250
+      }
+    ]
+  }
+}

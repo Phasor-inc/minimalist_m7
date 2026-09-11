@@ -1,0 +1,20 @@
+{
+  "model_name": "Minimalist_Xiaomi",
+  "submitter": "Phasor",
+  "date": "2026-09-11",
+  "robocasa_version": "1.0.1",
+  "atomic_seen_success": 78.89,
+  "composite_seen_success": 55.00,
+  "composite_unseen_success": 29.88,
+  "code_url": "N/A",
+  "commit_hash": "38360d368622c232989b7b75e7ac274a0914d551",
+  "checkpoint_url": "N/A",
+  "paper_link": "N/A",
+  "open_source": "no",
+  "wandb": "N/A",
+  "training_config": {
+    "batch_size": 48,
+    "num_training_steps": 220
+  },
+  "notes": "Correction to an earlier submission: the previously submitted numbers (79.44/57.62/30.75) were the frozen Xiaomi-Robotics-1-RoboCasa365 baseline (no fine-tuning), mistakenly submitted as this model's result before fine-tuning was complete. These are the correct, final numbers for Minimalist_Xiaomi: the frozen, open-weight Xiaomi-Robotics-1-RoboCasa365 checkpoint (backbone entirely unmodified, verified via exact DiT weight-sum match before/after every training run) fine-tuned with rank-4 LoRA adapters on the VLM's language_model attention/MLP layers, plus a sparse end-to-end memory core (Hopfield network + HGRN gate + adaptive gate) applied to pooled VLM hidden states as an additive consolidation-loss regularizer. Trained on real RoboCasa365 data (NVIDIA PhysicalAI-Robotics-Manipulation-Kitchen-Demos), restricted to the 34 official atomic_seen+composite_seen tasks (composite_unseen correctly held out of training). Results are from a completed, official 50-task/2500-episode target50 eval run (2500/2500 episodes, 0 errors). For reference, the frozen base checkpoint alone scores atomic_seen=79.44, composite_seen=57.63, composite_unseen=30.75 -- this submission is essentially tied with baseline on atomic_seen and modestly behind on composite_seen/composite_unseen in this run. training_config previously listed (batch_size 64, num_training_steps 80000) was also incorrect and has been corrected here to the real fine-tuning budget actually used (220 LoRA+memory-core steps starting from the already-pretrained base checkpoint, not a from-scratch training run). code_url/checkpoint_url are N/A pending a decision on public release."
+}

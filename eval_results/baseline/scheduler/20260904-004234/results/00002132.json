@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00002132",
+    "env_name": "MakeIceLemonade",
+    "task_index": 42,
+    "episode": 32,
+    "global_episode_index": 2132
+  },
+  "worker_id": "gpu-0",
+  "stats": {
+    "env_name": "MakeIceLemonade",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 0,
+    "success_rate": 0.0,
+    "horizon": 3000,
+    "episodes": [
+      {
+        "episode": 32,
+        "global_episode_index": 2132,
+        "seed": 2139,
+        "success": false,
+        "steps": 3000
+      }
+    ]
+  }
+}

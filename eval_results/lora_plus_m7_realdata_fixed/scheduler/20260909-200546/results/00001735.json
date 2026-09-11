@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00001735",
+    "env_name": "ArrangeBreadBasket",
+    "task_index": 34,
+    "episode": 35,
+    "global_episode_index": 1735
+  },
+  "worker_id": "gpu-1",
+  "stats": {
+    "env_name": "ArrangeBreadBasket",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 4350,
+    "episodes": [
+      {
+        "episode": 35,
+        "global_episode_index": 1735,
+        "seed": 1742,
+        "success": true,
+        "steps": 1062
+      }
+    ]
+  }
+}

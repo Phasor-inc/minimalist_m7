@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00001098",
+    "env_name": "LoadDishwasher",
+    "task_index": 21,
+    "episode": 48,
+    "global_episode_index": 1098
+  },
+  "worker_id": "gpu-1",
+  "stats": {
+    "env_name": "LoadDishwasher",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 1800,
+    "episodes": [
+      {
+        "episode": 48,
+        "global_episode_index": 1098,
+        "seed": 1105,
+        "success": true,
+        "steps": 1271
+      }
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00001288",
+    "env_name": "RinseSinkBasin",
+    "task_index": 25,
+    "episode": 38,
+    "global_episode_index": 1288
+  },
+  "worker_id": "gpu-1",
+  "stats": {
+    "env_name": "RinseSinkBasin",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 1350,
+    "episodes": [
+      {
+        "episode": 38,
+        "global_episode_index": 1288,
+        "seed": 1295,
+        "success": true,
+        "steps": 1050
+      }
+    ]
+  }
+}

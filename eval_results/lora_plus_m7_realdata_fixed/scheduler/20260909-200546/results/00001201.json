@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00001201",
+    "env_name": "PrepareCoffee",
+    "task_index": 24,
+    "episode": 1,
+    "global_episode_index": 1201
+  },
+  "worker_id": "gpu-0",
+  "stats": {
+    "env_name": "PrepareCoffee",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 1800,
+    "episodes": [
+      {
+        "episode": 1,
+        "global_episode_index": 1201,
+        "seed": 1208,
+        "success": true,
+        "steps": 812
+      }
+    ]
+  }
+}

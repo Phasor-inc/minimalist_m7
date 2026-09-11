@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00002256",
+    "env_name": "RecycleBottlesByType",
+    "task_index": 45,
+    "episode": 6,
+    "global_episode_index": 2256
+  },
+  "worker_id": "gpu-2",
+  "stats": {
+    "env_name": "RecycleBottlesByType",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 0,
+    "success_rate": 0.0,
+    "horizon": 2850,
+    "episodes": [
+      {
+        "episode": 6,
+        "global_episode_index": 2256,
+        "seed": 2263,
+        "success": false,
+        "steps": 2850
+      }
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00002319",
+    "env_name": "SeparateFreezerRack",
+    "task_index": 46,
+    "episode": 19,
+    "global_episode_index": 2319
+  },
+  "worker_id": "gpu-2",
+  "stats": {
+    "env_name": "SeparateFreezerRack",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 0,
+    "success_rate": 0.0,
+    "horizon": 2400,
+    "episodes": [
+      {
+        "episode": 19,
+        "global_episode_index": 2319,
+        "seed": 2326,
+        "success": false,
+        "steps": 2400
+      }
+    ]
+  }
+}

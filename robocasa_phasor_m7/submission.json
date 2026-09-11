@@ -1,0 +1,93 @@
+{
+  "submission_name": "Phasor_m7",
+  "benchmark": "RoboCasa365",
+  "method_summary": "Frozen Xiaomi-Robotics-1-RoboCasa365 backbone (5B params: Qwen3-VL-4B VLM + 36-layer DiT action head reading the VLM's own KV-cache) fine-tuned with rank-4 LoRA adapters on the VLM's language_model attention/MLP layers only, plus Phasor's own sparse end-to-end memory core (ImprovedHGRNGate + ModernHopfieldLayer + adaptive gate) applied to pooled VLM hidden states as an additive consolidation-loss regularizer. The DiT action head is never modified -- verified on every training run via exact weight-sum matching before/after (87388.32329446077, unchanged in all runs).",
+  "base_model": "XiaomiRobotics/Xiaomi-Robotics-1-RoboCasa365",
+  "base_model_frozen": true,
+  "training_data": "Real RoboCasa365 training data (NVIDIA PhysicalAI-Robotics-Manipulation-Kitchen-Demos, lerobot format), restricted to the 34 official atomic_seen + composite_seen tasks used by the target50 eval protocol. composite_unseen tasks are correctly absent from training data by design (they are the held-out generalization split).",
+  "eval_protocol": {
+    "task_set": "target50",
+    "split": "pretrain",
+    "num_tasks": 50,
+    "trials_per_task": 50,
+    "total_episodes": 2500,
+    "categories": {
+      "atomic_seen": 18,
+      "composite_seen": 16,
+      "composite_unseen": 16
+    }
+  },
+  "results": {
+    "baseline_frozen_xr1": {
+      "status": "complete",
+      "description": "Frozen Xiaomi-Robotics-1-RoboCasa365, no fine-tuning -- reference point.",
+      "run_id": "20260904-004234",
+      "atomic_seen_success": 0.7944,
+      "composite_seen_success": 0.5763,
+      "composite_unseen_success": 0.3075,
+      "overall_success": 0.5688,
+      "episode_counts": {
+        "atomic_seen": "715/900",
+        "composite_seen": "461/800",
+        "composite_unseen": "246/800",
+        "overall": "1422/2500"
+      }
+    },
+    "lora_plus_m7_realdata_fixed": {
+      "status": "complete",
+      "description": "LoRA + M7 memory-core consolidation, fine-tuned on real RoboCasa365 data. This is the primary submission leg.",
+      "run_id": "20260909-200546",
+      "checkpoint": "checkpoints/lora_plus_m7_realdata_fixed_merged",
+      "atomic_seen_success": 0.7889,
+      "composite_seen_success": 0.5500,
+      "composite_unseen_success": 0.2988,
+      "overall_success": 0.5556,
+      "episode_counts": {
+        "atomic_seen": "710/900",
+        "composite_seen": "440/800",
+        "composite_unseen": "239/800",
+        "overall": "1389/2500"
+      },
+      "delta_vs_baseline": {
+        "atomic_seen": -0.0055,
+        "composite_seen": -0.0263,
+        "composite_unseen": -0.0087,
+        "overall": -0.0132
+      },
+      "note": "Real, final, complete result (2500/2500 episodes, 0 errors). LoRA+M7 is essentially tied with the frozen baseline on atomic_seen and modestly behind on composite_seen/composite_unseen/overall -- it does NOT clearly beat the baseline in this run. Full per-task composite_unseen breakdown investigated separately: 3 tasks (GatherTableware, HeatKebabSandwich, PanTransfer) score ~0% for BOTH baseline and LoRA+M7 (pre-existing model-family limitation, not a fine-tuning regression); excluding those 3 known-broken tasks would raise both baseline's and LoRA+M7's composite_unseen averages roughly in parallel, not change the relative comparison materially."
+    },
+    "lora_only_realdata_fixed": {
+      "status": "IN_PROGRESS",
+      "description": "LoRA-only ablation leg (no M7 consolidation term), same real RoboCasa365 data and same action-order fix applied. Needed to isolate M7's specific contribution beyond LoRA alone. Auto-launched by queue_lora_only_fixed.sh once lora_plus_m7_realdata_fixed's sweep completed; smoke-tested 15/15 (100%) before the full sweep was launched.",
+      "run_id": "20260911-063256",
+      "checkpoint": "checkpoints/lora_only_realdata_fixed_merged",
+      "as_of": "2026-09-11T08:10:00Z",
+      "episodes_complete": "325/2500 (13%)",
+      "note": "Just started -- too early for a partial readout to be meaningful. Will be updated with final numbers once complete."
+    },
+    "lora_only_realdata_INVALID": {
+      "status": "invalid -- superseded",
+      "description": "An earlier LoRA-only run on real RoboCasa365 data was affected by the same action-dimension field-order bug documented below and was abandoned early (487/2500 episodes, 1.4% success). Not usable as a comparison point; superseded by lora_only_realdata_fixed above.",
+      "run_id": "20260907-192751"
+    }
+  },
+  "training_config": {
+    "seed": 42,
+    "total_steps": 220,
+    "batch_size": 48,
+    "action_length": 30,
+    "learning_rate": 0.0001,
+    "lora_rank": 4,
+    "lora_alpha": 8.0,
+    "consolidation_weight": 0.1,
+    "vlm_hidden_size": 2560,
+    "adapter_target_dim": 512,
+    "memory_size": 256,
+    "lora_target_modules": "VLM language_model attention (q_proj/k_proj/v_proj/o_proj) and MLP (gate_proj/up_proj/down_proj) Linear layers only",
+    "dit_action_head": "frozen, untouched (verified via exact weight-sum invariant on every run)"
+  },
+  "notes": [
+    "A real bug was found and fixed prior to this run: code/robocasa_lerobot_dataset.py copied the raw lerobot 'action' parquet column directly into the model's action-head input, but the on-disk field order (base_motion, control_mode, ee_position, ee_rotation, gripper_close) does not match the order the model's action head was actually calibrated against (per robocasa.utils.env_utils.convert_action: ee_position, ee_rotation, gripper_close, base_motion, control_mode). This caused an earlier lora_plus_m7_realdata run to collapse to 0.6% overall success. Fixed by adding action_window_to_real_order() to remap the field order before training; verified via a 15/15 (100%) targeted smoke test on CloseFridge/OpenCabinet/NavigateKitchen before launching the full sweep.",
+    "Honest headline result: on this run, LoRA+M7 does NOT beat the frozen baseline -- it is essentially tied on atomic_seen (-0.55pt) and modestly behind on composite_seen (-2.63pt), composite_unseen (-0.87pt), and overall (-1.32pt). This file will be updated once lora_only_realdata_fixed completes, which will show whether M7's memory-core term is actively hurting relative to LoRA alone, or whether LoRA alone would show a similar or larger gap versus baseline (in which case M7 isn't the cause of the shortfall)."
+  ]
+}

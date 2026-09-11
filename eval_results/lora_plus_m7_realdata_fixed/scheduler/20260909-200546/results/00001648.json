@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00001648",
+    "env_name": "StoreLeftoversInBowl",
+    "task_index": 32,
+    "episode": 48,
+    "global_episode_index": 1648
+  },
+  "worker_id": "gpu-2",
+  "stats": {
+    "env_name": "StoreLeftoversInBowl",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 2550,
+    "episodes": [
+      {
+        "episode": 48,
+        "global_episode_index": 1648,
+        "seed": 1655,
+        "success": true,
+        "steps": 1177
+      }
+    ]
+  }
+}

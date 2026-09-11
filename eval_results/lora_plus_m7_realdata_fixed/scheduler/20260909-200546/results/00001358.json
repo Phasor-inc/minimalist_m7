@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00001358",
+    "env_name": "SearingMeat",
+    "task_index": 27,
+    "episode": 8,
+    "global_episode_index": 1358
+  },
+  "worker_id": "gpu-2",
+  "stats": {
+    "env_name": "SearingMeat",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 0,
+    "success_rate": 0.0,
+    "horizon": 4350,
+    "episodes": [
+      {
+        "episode": 8,
+        "global_episode_index": 1358,
+        "seed": 1365,
+        "success": false,
+        "steps": 4350
+      }
+    ]
+  }
+}

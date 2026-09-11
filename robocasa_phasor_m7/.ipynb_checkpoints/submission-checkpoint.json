@@ -1,0 +1,85 @@
+{
+  "submission_name": "Phasor_m7",
+  "benchmark": "RoboCasa365",
+  "method_summary": "Frozen Xiaomi-Robotics-1-RoboCasa365 backbone (5B params: Qwen3-VL-4B VLM + 36-layer DiT action head reading the VLM's own KV-cache) fine-tuned with rank-4 LoRA adapters on the VLM's language_model attention/MLP layers only, plus Phasor's own sparse end-to-end memory core (ImprovedHGRNGate + ModernHopfieldLayer + adaptive gate) applied to pooled VLM hidden states as an additive consolidation-loss regularizer. The DiT action head is never modified -- verified on every training run via exact weight-sum matching before/after (87388.32329446077, unchanged in all runs).",
+  "base_model": "XiaomiRobotics/Xiaomi-Robotics-1-RoboCasa365",
+  "base_model_frozen": true,
+  "training_data": "Real RoboCasa365 training data (NVIDIA PhysicalAI-Robotics-Manipulation-Kitchen-Demos, lerobot format), restricted to the 34 official atomic_seen + composite_seen tasks used by the target50 eval protocol. composite_unseen tasks are correctly absent from training data by design (they are the held-out generalization split).",
+  "eval_protocol": {
+    "task_set": "target50",
+    "split": "pretrain",
+    "num_tasks": 50,
+    "trials_per_task": 50,
+    "total_episodes": 2500,
+    "categories": {
+      "atomic_seen": 18,
+      "composite_seen": 16,
+      "composite_unseen": 16
+    }
+  },
+  "results": {
+    "baseline_frozen_xr1": {
+      "status": "complete",
+      "description": "Frozen Xiaomi-Robotics-1-RoboCasa365, no fine-tuning -- reference point.",
+      "run_id": "20260904-004234",
+      "atomic_seen_success": 0.7944,
+      "composite_seen_success": 0.5763,
+      "composite_unseen_success": 0.3075,
+      "overall_success": 0.5688,
+      "episode_counts": {
+        "atomic_seen": "715/900",
+        "composite_seen": "461/800",
+        "composite_unseen": "246/800",
+        "overall": "1422/2500"
+      }
+    },
+    "lora_plus_m7_realdata_fixed": {
+      "status": "IN_PROGRESS -- NOT FINAL, do not cite these numbers as the submission result",
+      "description": "LoRA + M7 memory-core consolidation, fine-tuned on real RoboCasa365 data. This is the primary submission leg.",
+      "run_id": "20260909-200546",
+      "checkpoint": "checkpoints/lora_plus_m7_realdata_fixed_merged",
+      "as_of": "2026-09-10T20:53:00Z",
+      "episodes_complete": "2153/2500 (86.1%)",
+      "provisional_atomic_seen_success": 0.7889,
+      "provisional_composite_seen_success": 0.55,
+      "provisional_composite_unseen_success": 0.3333,
+      "provisional_overall_success": 0.6043,
+      "provisional_episode_counts": {
+        "atomic_seen": "710/900 (complete)",
+        "composite_seen": "440/800 (complete)",
+        "composite_unseen": "151/453 (partial, 16 tasks total, several still 0 episodes)",
+        "overall": "1301/2153"
+      },
+      "note": "atomic_seen and composite_seen are fully complete and stable. composite_unseen is still filling in and has been volatile between checks (two tasks landed at 0/50, others at 40-64%) -- final composite_unseen and overall numbers will be substituted here once the sweep finishes."
+    },
+    "lora_only_realdata_fixed": {
+      "status": "NOT YET RUN",
+      "description": "LoRA-only ablation leg (no M7 consolidation term), same real RoboCasa365 data and same fix applied. Needed to isolate M7's specific contribution beyond LoRA alone. Queued to start automatically once lora_plus_m7_realdata_fixed's sweep completes (see /workspace/xr1-m7-submission/queue_lora_only_fixed.sh).",
+      "run_id": null
+    },
+    "lora_only_realdata_INVALID": {
+      "status": "invalid -- superseded",
+      "description": "An earlier LoRA-only run on real RoboCasa365 data was affected by the same action-dimension field-order bug documented below and was abandoned early (487/2500 episodes, 1.4% success). Not usable as a comparison point; superseded by lora_only_realdata_fixed above.",
+      "run_id": "20260907-192751"
+    }
+  },
+  "training_config": {
+    "seed": 42,
+    "total_steps": 220,
+    "batch_size": 48,
+    "action_length": 30,
+    "learning_rate": 0.0001,
+    "lora_rank": 4,
+    "lora_alpha": 8.0,
+    "consolidation_weight": 0.1,
+    "vlm_hidden_size": 2560,
+    "adapter_target_dim": 512,
+    "memory_size": 256,
+    "lora_target_modules": "VLM language_model attention (q_proj/k_proj/v_proj/o_proj) and MLP (gate_proj/up_proj/down_proj) Linear layers only",
+    "dit_action_head": "frozen, untouched (verified via exact weight-sum invariant on every run)"
+  },
+  "notes": [
+    "A real bug was found and fixed prior to this run: code/robocasa_lerobot_dataset.py copied the raw lerobot 'action' parquet column directly into the model's action-head input, but the on-disk field order (base_motion, control_mode, ee_position, ee_rotation, gripper_close) does not match the order the model's action head was actually calibrated against (per robocasa.utils.env_utils.convert_action: ee_position, ee_rotation, gripper_close, base_motion, control_mode). This caused an earlier lora_plus_m7_realdata run to collapse to 0.6% overall success. Fixed by adding action_window_to_real_order() to remap the field order before training; verified via a 15/15 (100%) targeted smoke test on CloseFridge/OpenCabinet/NavigateKitchen before launching this full sweep.",
+    "This submission file will be updated with final, complete numbers once the lora_plus_m7_realdata_fixed sweep (2500/2500 episodes) and the queued lora_only_realdata_fixed retrain+eval both finish."
+  ]
+}

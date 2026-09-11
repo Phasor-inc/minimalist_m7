@@ -1,0 +1,20 @@
+{
+  "model_name": "Phasor_m7",
+  "submitter": "Phasor",
+  "date": "2026-09-11",
+  "robocasa_version": "1.0.1",
+  "atomic_seen_success": 78.89,
+  "composite_seen_success": 55.00,
+  "composite_unseen_success": 29.88,
+  "code_url": "N/A",
+  "commit_hash": "38360d368622c232989b7b75e7ac274a0914d551",
+  "checkpoint_url": "N/A",
+  "paper_link": "N/A",
+  "open_source": "no",
+  "wandb": "N/A",
+  "training_config": {
+    "batch_size": 48,
+    "num_training_steps": 220
+  },
+  "notes": "Phasor_m7 fine-tunes the frozen, open-weight Xiaomi-Robotics-1-RoboCasa365 checkpoint (backbone entirely unmodified, verified via exact DiT weight-sum match before/after every training run) with rank-4 LoRA adapters on the VLM's language_model attention/MLP layers, plus our own sparse end-to-end memory core (Hopfield network + HGRN gate + adaptive gate) applied to pooled VLM hidden states as an additive consolidation-loss regularizer during training. Trained on real RoboCasa365 data (NVIDIA PhysicalAI-Robotics-Manipulation-Kitchen-Demos), restricted to the 34 official atomic_seen+composite_seen tasks (composite_unseen correctly held out of training as the generalization test split). Results are from a completed, official 50-task/2500-episode target50 eval run (2500/2500 episodes, 0 errors). For reference, the frozen base checkpoint (no fine-tuning) scores atomic_seen=79.44, composite_seen=57.63, composite_unseen=30.75 on this same protocol -- Phasor_m7 is essentially tied on atomic_seen and slightly behind baseline on composite_seen/composite_unseen in this run; a matched LoRA-only ablation (same data, same fix, no memory core) is in progress to isolate whether the memory-core term specifically helps or hurts relative to LoRA alone. date/code_url/checkpoint_url/open_source are placeholders pending a decision on public release; commit_hash reflects the exact training/eval code state used to produce this result. training_config.num_training_steps (220) reflects LoRA+memory-core fine-tuning steps only, starting from Xiaomi-Robotics-1-RoboCasa365's own already-pretrained weights (not a from-scratch training budget)."
+}

@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00000261",
+    "env_name": "OpenCabinet",
+    "task_index": 5,
+    "episode": 11,
+    "global_episode_index": 261
+  },
+  "worker_id": "gpu-0",
+  "stats": {
+    "env_name": "OpenCabinet",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 1050,
+    "episodes": [
+      {
+        "episode": 11,
+        "global_episode_index": 261,
+        "seed": 268,
+        "success": true,
+        "steps": 354
+      }
+    ]
+  }
+}

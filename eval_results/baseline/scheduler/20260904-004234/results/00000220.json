@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00000220",
+    "env_name": "NavigateKitchen",
+    "task_index": 4,
+    "episode": 20,
+    "global_episode_index": 220
+  },
+  "worker_id": "gpu-0",
+  "stats": {
+    "env_name": "NavigateKitchen",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 450,
+    "episodes": [
+      {
+        "episode": 20,
+        "global_episode_index": 220,
+        "seed": 227,
+        "success": true,
+        "steps": 212
+      }
+    ]
+  }
+}

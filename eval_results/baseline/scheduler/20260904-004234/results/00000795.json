@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00000795",
+    "env_name": "TurnOnElectricKettle",
+    "task_index": 15,
+    "episode": 45,
+    "global_episode_index": 795
+  },
+  "worker_id": "gpu-2",
+  "stats": {
+    "env_name": "TurnOnElectricKettle",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 450,
+    "episodes": [
+      {
+        "episode": 45,
+        "global_episode_index": 795,
+        "seed": 802,
+        "success": true,
+        "steps": 94
+      }
+    ]
+  }
+}

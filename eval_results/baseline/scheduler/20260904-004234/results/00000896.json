@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00000896",
+    "env_name": "TurnOnSinkFaucet",
+    "task_index": 17,
+    "episode": 46,
+    "global_episode_index": 896
+  },
+  "worker_id": "gpu-2",
+  "stats": {
+    "env_name": "TurnOnSinkFaucet",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 0,
+    "success_rate": 0.0,
+    "horizon": 600,
+    "episodes": [
+      {
+        "episode": 46,
+        "global_episode_index": 896,
+        "seed": 903,
+        "success": false,
+        "steps": 600
+      }
+    ]
+  }
+}
