@@ -32,6 +32,27 @@ Raw per-episode results backing every number above are included under
 `eval_results/`. `split_summary.py <path/to/summary.json>` reproduces the
 category breakdown from any `summary.json` in this repo.
 
+## Plots
+
+**Baseline vs. LoRA+M7, final:**
+
+![final comparison](plots/plot_final_comparison.png)
+
+**Real eval-sweep throughput over time** (all three sweeps, 3 parallel workers on
+one shared GPU — LoRA-only is still in progress, hence the shorter line):
+
+![eval progress](plots/plot_eval_progress.png)
+
+**Real training loss**, LoRA-only vs. LoRA+M7 (near-identical trajectories — same
+seed, same data order; the LoRA-side loss dominates `total_loss` so the small
+consolidation term barely shifts it):
+
+![training loss](plots/plot_training_loss.png)
+
+**M7 memory-core consolidation term settling during training** (log scale):
+
+![consolidation loss](plots/plot_consolidation_loss.png)
+
 ## What's real and verifiable here
 
 - `code/` — the actual training/merge code (LoRA injection, M7 memory core,
