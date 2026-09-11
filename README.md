@@ -80,8 +80,10 @@ smoke test before re-running the full sweep. Full writeup with evidence in
 
 ## Checkpoint
 
-The merged, deployable checkpoint is hosted on Hugging Face:
-`<TO BE FILLED IN>`
+Merged, deployable checkpoints are hosted on Hugging Face:
+
+- [Project-Phasor/phasor-m7-robocasa365](https://huggingface.co/Project-Phasor/phasor-m7-robocasa365) — LoRA+M7, the submission checkpoint
+- [Project-Phasor/phasor-lora-only-robocasa365](https://huggingface.co/Project-Phasor/phasor-lora-only-robocasa365) — LoRA-only ablation checkpoint
 
 ## Training config (real, as used)
 
