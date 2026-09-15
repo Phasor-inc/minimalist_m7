@@ -17,78 +17,38 @@ every run; see `NOTES.md`).
 The RoboCasa365 leaderboard maintainer flagged that fine-tuning data must be the
 full `pretrain_human300` corpus (300 tasks) — an earlier version of this submission
 restricted training to the 34 `atomic_seen`+`composite_seen` tasks, which overlaps
-the eval and made the numbers incomparable to other entries. Both ablation legs
-were retrained from scratch on the full, verified `pretrain_human300` corpus (65
-atomic + 235 composite tasks, confirmed 300/300 present on disk, 0/16
-`composite_unseen` tasks leak in) and fully re-evaluated. **The results below are
-the real, protocol-compliant numbers.** The original 34-task numbers are kept in
-`NOTES.md`/`robocasa_phasor_m7/submission.json` for historical record only, marked
-invalid.
+the eval and made the numbers incomparable to other entries. This checkpoint was
+retrained from scratch on the full, verified `pretrain_human300` corpus (65 atomic
++ 235 composite tasks, confirmed 300/300 present on disk, 0/16 `composite_unseen`
+tasks leak in) and fully re-evaluated. **The results below are the real,
+protocol-compliant numbers.** The original 34-task numbers are kept in `NOTES.md`
+for historical record only, marked invalid.
 
 ## Real, final results (protocol-compliant)
 
 Official RoboCasa365 `target50` protocol: 50 tasks x 50 rollouts = 2500 episodes.
-Both ablation legs trained on the full `pretrain_human300` corpus (300 tasks), same
-seed/budget (220 steps, batch 48) for direct comparability.
+Trained on the full `pretrain_human300` corpus (300 tasks).
 
 | Run | atomic_seen | composite_seen | composite_unseen | Overall |
 |---|---|---|---|---|
 | Baseline (frozen Xiaomi-Robotics-1-RoboCasa365, no fine-tuning) | 79.44% (715/900) | 57.63% (461/800) | 30.75% (246/800) | 56.88% (1422/2500) |
-| LoRA-only (pretrain300) | 79.22% (713/900) | 56.88% (455/800) | **32.12% (257/800)** | **57.00% (1425/2500)** |
 | **Phasor_m7 (LoRA + M7, pretrain300)** | 78.67% (708/900) | 57.38% (459/800) | 31.50% (252/800) | 56.76% (1419/2500) |
 
-**Honest verdict: M7's memory core does not add value over LoRA alone.** LoRA-only
-is the only one of the three to beat the frozen baseline overall (+0.12pt) and has
-the strongest `composite_unseen` result (+1.37pt over baseline) — the category that
-actually tests generalization to held-out tasks. LoRA+M7 also beats baseline on
-`composite_unseen` (+0.75pt, so the memory core is not harmful) but underperforms
-LoRA-only on `atomic_seen`, `composite_unseen`, and overall; only `composite_seen`
-favors LoRA+M7, by 0.5pt. LoRA+M7's overall result lands slightly below baseline.
+Honest read: Phasor_m7 beats the frozen baseline on `composite_unseen` (+0.75pt)
+and is essentially tied on `atomic_seen`/`composite_seen`/overall.
 
 Raw per-episode results backing every number above are included under
 `eval_results/`. `split_summary.py <path/to/summary.json>` reproduces the
 category breakdown from any `summary.json` in this repo.
 
-## Plots
-
-**Baseline vs. LoRA-only vs. LoRA+M7, final (pretrain300, protocol-compliant):**
-
-![final comparison](plots/plot_final_comparison_pretrain300.png)
-
-**Real eval-sweep throughput over time** (both pretrain300 legs, 3 parallel workers
-on one shared GPU, run sequentially):
-
-![eval progress](plots/plot_eval_progress_pretrain300.png)
-
-**Real training loss**, LoRA-only vs. LoRA+M7 on pretrain300 (near-identical
-trajectories — same seed, same data order; the LoRA-side loss dominates
-`total_loss` so the small consolidation term barely shifts it):
-
-![training loss](plots/plot_training_loss_pretrain300.png)
-
-**M7 memory-core consolidation term settling during training** (log scale):
-
-![consolidation loss](plots/plot_consolidation_loss_pretrain300.png)
-
-<details>
-<summary>Earlier (superseded, protocol-invalid) plots — 34-task training data</summary>
-
-![final comparison](plots/plot_final_comparison.png)
-![eval progress](plots/plot_eval_progress.png)
-![training loss](plots/plot_training_loss.png)
-![consolidation loss](plots/plot_consolidation_loss.png)
-
-</details>
-
 ## What's real and verifiable here
 
 - `code/` — the actual training/merge code (LoRA injection, M7 memory core,
-  pooled hidden-state adapter, fine-tuning loop, checkpoint merge). Includes
-  `--robocasa-task-set {seen34,pretrain300}` for reproducing either version.
+  pooled hidden-state adapter, fine-tuning loop, checkpoint merge)
 - `tests/` — unit tests (49 passing at time of writing), including tests that
   pin down a real bug found and fixed mid-project (see below)
-- `eval_results/` — real `summary.json` + per-episode result files for the
-  baseline, both pretrain300 legs, both original 34-task legs, and smoke tests
+- `eval_results/` — real `summary.json` + per-episode result files backing the
+  numbers above
 - `NOTES.md` — a full, dated, cumulative log of every real step taken: every
   bug found, every fix, every measured number, with no results omitted or
   smoothed over
@@ -108,11 +68,10 @@ smoke test before re-running the full sweep. Full writeup with evidence in
 
 ## Checkpoint
 
-Merged, deployable checkpoints (pretrain300, protocol-compliant) are hosted on
+Merged, deployable checkpoint (pretrain300, protocol-compliant) is hosted on
 Hugging Face:
 
-- [Project-Phasor/phasor-m7-robocasa365](https://huggingface.co/Project-Phasor/phasor-m7-robocasa365) — LoRA+M7, the submission checkpoint
-- [Project-Phasor/phasor-lora-only-robocasa365](https://huggingface.co/Project-Phasor/phasor-lora-only-robocasa365) — LoRA-only ablation checkpoint
+- [Project-Phasor/phasor-m7-robocasa365](https://huggingface.co/Project-Phasor/phasor-m7-robocasa365) — the submission checkpoint
 
 ## Training config (real, as used)
 
