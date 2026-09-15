@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00001685",
+    "env_name": "WashLettuce",
+    "task_index": 33,
+    "episode": 35,
+    "global_episode_index": 1685
+  },
+  "worker_id": "gpu-2",
+  "stats": {
+    "env_name": "WashLettuce",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 1650,
+    "episodes": [
+      {
+        "episode": 35,
+        "global_episode_index": 1685,
+        "seed": 1692,
+        "success": true,
+        "steps": 804
+      }
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00001807",
+    "env_name": "BreadSelection",
+    "task_index": 36,
+    "episode": 7,
+    "global_episode_index": 1807
+  },
+  "worker_id": "gpu-0",
+  "stats": {
+    "env_name": "BreadSelection",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 0,
+    "success_rate": 0.0,
+    "horizon": 1950,
+    "episodes": [
+      {
+        "episode": 7,
+        "global_episode_index": 1807,
+        "seed": 1814,
+        "success": false,
+        "steps": 1950
+      }
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00002356",
+    "env_name": "WaffleReheat",
+    "task_index": 47,
+    "episode": 6,
+    "global_episode_index": 2356
+  },
+  "worker_id": "gpu-1",
+  "stats": {
+    "env_name": "WaffleReheat",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 0,
+    "success_rate": 0.0,
+    "horizon": 4050,
+    "episodes": [
+      {
+        "episode": 6,
+        "global_episode_index": 2356,
+        "seed": 2363,
+        "success": false,
+        "steps": 4050
+      }
+    ]
+  }
+}

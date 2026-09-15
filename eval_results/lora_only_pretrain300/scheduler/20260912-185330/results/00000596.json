@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00000596",
+    "env_name": "PickPlaceSinkToCounter",
+    "task_index": 11,
+    "episode": 46,
+    "global_episode_index": 596
+  },
+  "worker_id": "gpu-2",
+  "stats": {
+    "env_name": "PickPlaceSinkToCounter",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 900,
+    "episodes": [
+      {
+        "episode": 46,
+        "global_episode_index": 596,
+        "seed": 603,
+        "success": true,
+        "steps": 232
+      }
+    ]
+  }
+}

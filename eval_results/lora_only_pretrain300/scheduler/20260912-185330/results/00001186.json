@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00001186",
+    "env_name": "PreSoakPan",
+    "task_index": 23,
+    "episode": 36,
+    "global_episode_index": 1186
+  },
+  "worker_id": "gpu-2",
+  "stats": {
+    "env_name": "PreSoakPan",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 0,
+    "success_rate": 0.0,
+    "horizon": 2400,
+    "episodes": [
+      {
+        "episode": 36,
+        "global_episode_index": 1186,
+        "seed": 1193,
+        "success": false,
+        "steps": 2400
+      }
+    ]
+  }
+}

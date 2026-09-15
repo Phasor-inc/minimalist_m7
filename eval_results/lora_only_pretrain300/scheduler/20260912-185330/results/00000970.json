@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00000970",
+    "env_name": "GetToastedBread",
+    "task_index": 19,
+    "episode": 20,
+    "global_episode_index": 970
+  },
+  "worker_id": "gpu-0",
+  "stats": {
+    "env_name": "GetToastedBread",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 3000,
+    "episodes": [
+      {
+        "episode": 20,
+        "global_episode_index": 970,
+        "seed": 977,
+        "success": true,
+        "steps": 1345
+      }
+    ]
+  }
+}

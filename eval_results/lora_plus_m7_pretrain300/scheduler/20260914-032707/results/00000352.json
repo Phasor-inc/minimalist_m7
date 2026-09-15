@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00000352",
+    "env_name": "OpenStandMixerHead",
+    "task_index": 7,
+    "episode": 2,
+    "global_episode_index": 352
+  },
+  "worker_id": "gpu-0",
+  "stats": {
+    "env_name": "OpenStandMixerHead",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 450,
+    "episodes": [
+      {
+        "episode": 2,
+        "global_episode_index": 352,
+        "seed": 359,
+        "success": true,
+        "steps": 72
+      }
+    ]
+  }
+}

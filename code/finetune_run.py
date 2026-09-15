@@ -39,6 +39,8 @@ from code.pooled_hidden_adapter import PooledHiddenAdapter, pool_state_token_hid
 from code.robocasa_lerobot_dataset import (  # noqa: E402
     OFFICIAL_ATOMIC_SEEN_TASKS,
     OFFICIAL_COMPOSITE_SEEN_TASKS,
+    PRETRAIN300_ATOMIC_TASKS,
+    PRETRAIN300_COMPOSITE_TASKS,
     RoboCasaLerobotDataset,
     discover_task_roots,
 )
@@ -309,6 +311,7 @@ def build_dataloader(
     seed: int,
     data_source: str = "xr1_demo",
     robocasa_data_root: str | None = None,
+    robocasa_task_set: str = "seen34",
 ):
     """Builds the real DataLoader for one of two real, on-disk data sources
     (see NOTES.md "Task 9 pivot" for the full rationale):
@@ -334,9 +337,11 @@ def build_dataloader(
     reproducible given the same seed regardless of how much global RNG
     state model/adapter construction consumed beforehand (see main())."""
     if data_source == "robocasa":
-        task_roots = discover_task_roots(
-            robocasa_data_root, OFFICIAL_ATOMIC_SEEN_TASKS, OFFICIAL_COMPOSITE_SEEN_TASKS
-        )
+        if robocasa_task_set == "pretrain300":
+            atomic_tasks, composite_tasks = PRETRAIN300_ATOMIC_TASKS, PRETRAIN300_COMPOSITE_TASKS
+        else:
+            atomic_tasks, composite_tasks = OFFICIAL_ATOMIC_SEEN_TASKS, OFFICIAL_COMPOSITE_SEEN_TASKS
+        task_roots = discover_task_roots(robocasa_data_root, atomic_tasks, composite_tasks)
         max_samples = total_steps * batch_size
         dataset = RoboCasaLerobotDataset(task_roots, action_length, max_samples, seed)
     elif data_source == "xr1_demo":
@@ -504,6 +509,14 @@ def build_arg_parser():
         help="Root containing {atomic,composite}/<TaskName>/<date>/lerobot/. Only used when "
         "--data-source=robocasa.",
     )
+    parser.add_argument(
+        "--robocasa-task-set",
+        choices=["seen34", "pretrain300"],
+        default="seen34",
+        help="seen34 (default, original Task 9 scope): the 34 atomic_seen+composite_seen tasks only. "
+        "pretrain300: the real pretrain_human300 corpus (300 tasks, verified 0/16 composite_unseen leak). "
+        "Only used when --data-source=robocasa.",
+    )
     parser.add_argument("--use-m7-consolidation", action="store_true", help="Enable the LoRA+M7 ablation mode.")
     parser.add_argument(
         "--seed",
@@ -639,6 +652,7 @@ def main():
         args.seed,
         data_source=args.data_source,
         robocasa_data_root=args.robocasa_data_root,
+        robocasa_task_set=args.robocasa_task_set,
     )
 
     # Re-seed immediately before the training loop. LoRA+M7 mode's

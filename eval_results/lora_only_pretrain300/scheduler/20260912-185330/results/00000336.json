@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00000336",
+    "env_name": "OpenDrawer",
+    "task_index": 6,
+    "episode": 36,
+    "global_episode_index": 336
+  },
+  "worker_id": "gpu-0",
+  "stats": {
+    "env_name": "OpenDrawer",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 750,
+    "episodes": [
+      {
+        "episode": 36,
+        "global_episode_index": 336,
+        "seed": 343,
+        "success": true,
+        "steps": 182
+      }
+    ]
+  }
+}

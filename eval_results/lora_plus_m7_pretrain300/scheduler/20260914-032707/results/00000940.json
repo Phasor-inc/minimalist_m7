@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00000940",
+    "env_name": "DeliverStraw",
+    "task_index": 18,
+    "episode": 40,
+    "global_episode_index": 940
+  },
+  "worker_id": "gpu-0",
+  "stats": {
+    "env_name": "DeliverStraw",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 2550,
+    "episodes": [
+      {
+        "episode": 40,
+        "global_episode_index": 940,
+        "seed": 947,
+        "success": true,
+        "steps": 939
+      }
+    ]
+  }
+}

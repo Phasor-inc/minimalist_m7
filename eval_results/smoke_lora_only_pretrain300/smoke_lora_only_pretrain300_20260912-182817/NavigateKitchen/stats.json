@@ -1,0 +1,45 @@
+{
+  "env_name": "NavigateKitchen",
+  "split": "pretrain",
+  "num_episodes": 5,
+  "successes": 5,
+  "success_rate": 1.0,
+  "horizon": 450,
+  "episodes": [
+    {
+      "episode": 0,
+      "global_episode_index": 20,
+      "seed": 27,
+      "success": true,
+      "steps": 165
+    },
+    {
+      "episode": 1,
+      "global_episode_index": 21,
+      "seed": 28,
+      "success": true,
+      "steps": 142
+    },
+    {
+      "episode": 2,
+      "global_episode_index": 22,
+      "seed": 29,
+      "success": true,
+      "steps": 248
+    },
+    {
+      "episode": 3,
+      "global_episode_index": 23,
+      "seed": 30,
+      "success": true,
+      "steps": 202
+    },
+    {
+      "episode": 4,
+      "global_episode_index": 24,
+      "seed": 31,
+      "success": true,
+      "steps": 168
+    }
+  ]
+}

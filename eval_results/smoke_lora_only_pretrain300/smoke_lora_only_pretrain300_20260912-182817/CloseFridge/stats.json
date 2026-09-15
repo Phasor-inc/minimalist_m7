@@ -1,0 +1,45 @@
+{
+  "env_name": "CloseFridge",
+  "split": "pretrain",
+  "num_episodes": 5,
+  "successes": 5,
+  "success_rate": 1.0,
+  "horizon": 900,
+  "episodes": [
+    {
+      "episode": 0,
+      "global_episode_index": 5,
+      "seed": 12,
+      "success": true,
+      "steps": 265
+    },
+    {
+      "episode": 1,
+      "global_episode_index": 6,
+      "seed": 13,
+      "success": true,
+      "steps": 219
+    },
+    {
+      "episode": 2,
+      "global_episode_index": 7,
+      "seed": 14,
+      "success": true,
+      "steps": 139
+    },
+    {
+      "episode": 3,
+      "global_episode_index": 8,
+      "seed": 15,
+      "success": true,
+      "steps": 117
+    },
+    {
+      "episode": 4,
+      "global_episode_index": 9,
+      "seed": 16,
+      "success": true,
+      "steps": 288
+    }
+  ]
+}

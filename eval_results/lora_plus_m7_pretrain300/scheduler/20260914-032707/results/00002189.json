@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00002189",
+    "env_name": "PanTransfer",
+    "task_index": 43,
+    "episode": 39,
+    "global_episode_index": 2189
+  },
+  "worker_id": "gpu-2",
+  "stats": {
+    "env_name": "PanTransfer",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 0,
+    "success_rate": 0.0,
+    "horizon": 1800,
+    "episodes": [
+      {
+        "episode": 39,
+        "global_episode_index": 2189,
+        "seed": 2196,
+        "success": false,
+        "steps": 1800
+      }
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00000198",
+    "env_name": "CoffeeSetupMug",
+    "task_index": 3,
+    "episode": 48,
+    "global_episode_index": 198
+  },
+  "worker_id": "gpu-2",
+  "stats": {
+    "env_name": "CoffeeSetupMug",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 0,
+    "success_rate": 0.0,
+    "horizon": 600,
+    "episodes": [
+      {
+        "episode": 48,
+        "global_episode_index": 198,
+        "seed": 205,
+        "success": false,
+        "steps": 600
+      }
+    ]
+  }
+}

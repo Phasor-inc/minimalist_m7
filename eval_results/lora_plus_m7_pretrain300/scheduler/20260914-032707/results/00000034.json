@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00000034",
+    "env_name": "CloseBlenderLid",
+    "task_index": 0,
+    "episode": 34,
+    "global_episode_index": 34
+  },
+  "worker_id": "gpu-1",
+  "stats": {
+    "env_name": "CloseBlenderLid",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 900,
+    "episodes": [
+      {
+        "episode": 34,
+        "global_episode_index": 34,
+        "seed": 41,
+        "success": true,
+        "steps": 492
+      }
+    ]
+  }
+}

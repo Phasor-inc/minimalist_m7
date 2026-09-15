@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00001792",
+    "env_name": "ArrangeTea",
+    "task_index": 35,
+    "episode": 42,
+    "global_episode_index": 1792
+  },
+  "worker_id": "gpu-2",
+  "stats": {
+    "env_name": "ArrangeTea",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 2250,
+    "episodes": [
+      {
+        "episode": 42,
+        "global_episode_index": 1792,
+        "seed": 1799,
+        "success": true,
+        "steps": 1892
+      }
+    ]
+  }
+}

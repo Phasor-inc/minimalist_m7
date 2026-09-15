@@ -1,0 +1,45 @@
+{
+  "env_name": "OpenCabinet",
+  "split": "pretrain",
+  "num_episodes": 5,
+  "successes": 5,
+  "success_rate": 1.0,
+  "horizon": 1050,
+  "episodes": [
+    {
+      "episode": 0,
+      "global_episode_index": 25,
+      "seed": 32,
+      "success": true,
+      "steps": 165
+    },
+    {
+      "episode": 1,
+      "global_episode_index": 26,
+      "seed": 33,
+      "success": true,
+      "steps": 383
+    },
+    {
+      "episode": 2,
+      "global_episode_index": 27,
+      "seed": 34,
+      "success": true,
+      "steps": 346
+    },
+    {
+      "episode": 3,
+      "global_episode_index": 28,
+      "seed": 35,
+      "success": true,
+      "steps": 325
+    },
+    {
+      "episode": 4,
+      "global_episode_index": 29,
+      "seed": 36,
+      "success": true,
+      "steps": 371
+    }
+  ]
+}

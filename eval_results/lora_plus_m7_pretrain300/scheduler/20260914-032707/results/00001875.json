@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00001875",
+    "env_name": "CategorizeCondiments",
+    "task_index": 37,
+    "episode": 25,
+    "global_episode_index": 1875
+  },
+  "worker_id": "gpu-0",
+  "stats": {
+    "env_name": "CategorizeCondiments",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 0,
+    "success_rate": 0.0,
+    "horizon": 1650,
+    "episodes": [
+      {
+        "episode": 25,
+        "global_episode_index": 1875,
+        "seed": 1882,
+        "success": false,
+        "steps": 1650
+      }
+    ]
+  }
+}

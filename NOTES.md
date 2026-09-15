@@ -479,3 +479,70 @@ The 6 paused M7 trimodal PIDs and the ODI job were re-verified untouched at ever
 - **Real, targeted smoke eval (not the full 2500-episode sweep) via the actual `eval_robocasa365/entry.py` client against a single live model server, 5 real trials each on 3 real tasks (`CloseFridge`, `OpenCabinet`, `NavigateKitchen` -- the same tasks used in the root-cause diagnosis above): `eval_results/smoke_fixed_m7/smoketest1/summary.json` -- real result: 15/15 = 100.00% success.** Every episode succeeded well inside its horizon (e.g. `CloseFridge` episodes completed in 129-323 steps against a 900-step horizon; `OpenCabinet` in 179-387 steps against 1050; `NavigateKitchen` in 141-255 steps against 450) -- genuine task completion, not timeouts. This directly contrasts with the broken checkpoint's 0/50 on `CloseFridge`/`OpenCabinet` and 8/50 (16%) on `NavigateKitchen`.
 
 **Not yet done, left for the next session:** the fixed checkpoint has only been smoke-tested on 3 tasks / 15 episodes, not the full 2500-episode / 50-task `target50` sweep. Given this session's smoke-test evidence is unambiguous (0% -> 100% on a real, non-trivial sample), the natural next step is to launch the full `lora_plus_m7_realdata_fixed_merged` eval sweep (same 3-server pattern as every prior sweep in this file) to get real, comparable `atomic_seen`/`composite_seen`/`composite_unseen`/overall numbers against the 79.44/57.62/30.75/56.88 baseline. **The `lora_only_realdata` leg should also be retrained with this same fix and re-evaluated** (its original run was abandoned early at 487/2500 anyway, so nothing is lost by redoing it) -- the current `lora_only_realdata`/`lora_only_realdata_merged` checkpoints and their partial eval results should be treated as invalid/superseded by this bug, not as a usable ablation baseline. GPU state at hand-off: the smoke-test's single model server was killed and GPU freed (`5140 MiB / 49140 MiB` used, matching every prior clean hand-off in this file) before ending this session. The 6 paused M7 trimodal PIDs and the ODI job were re-verified untouched throughout.
+
+## LoRA+M7 real data (fixed) -- FINAL, COMPLETE eval result
+
+Run `20260909-200546` finished for real: **2500/2500 episodes, 0 errors**, elapsed ~31 hours.
+
+```
+python3 split_summary.py eval_results/lora_plus_m7_realdata_fixed/20260909-200546/summary.json
+  atomic_seen: 78.89%  (710/900)
+  composite_seen: 55.00%  (440/800)
+  composite_unseen: 29.88%  (239/800)
+  overall: 55.56%  (1389/2500)
+```
+
+**Real comparison table:**
+
+| Run | atomic_seen | composite_seen | composite_unseen | Overall |
+|---|---|---|---|---|
+| Baseline (frozen) | 79.44% (715/900) | 57.63% (461/800) | 30.75% (246/800) | 56.88% (1422/2500) |
+| LoRA+M7 (real RoboCasa data, fixed) | 78.89% (710/900) | 55.00% (440/800) | 29.88% (239/800) | 55.56% (1389/2500) |
+| Delta vs. baseline | -0.55pt | -2.63pt | -0.87pt | -1.32pt |
+
+**Honest read: LoRA+M7 does not beat the frozen baseline on this run.** It is essentially tied on `atomic_seen` (within noise) and modestly behind on `composite_seen`, `composite_unseen`, and overall. This is the real, final number -- not a hoped-for one.
+
+Separately investigated: 3 `composite_unseen` tasks (`GatherTableware`, `HeatKebabSandwich`, `PanTransfer`) score ~0% for **both** baseline and LoRA+M7 -- confirmed via baseline's own per-task summary and raw episode step counts (all episodes in both runs ran to the exact horizon with zero success trigger). This is a pre-existing model-family limitation on these 3 specific tasks, not a fine-tuning regression -- excluding them moves both baseline's and LoRA+M7's `composite_unseen` averages up roughly in parallel and does not change the relative (negative) comparison.
+
+**LoRA-only-fixed ablation launched automatically** (per `queue_lora_only_fixed.sh`, which was queued ahead of time to start the moment this sweep finished): retrained on the same real data with the identical fix, no `--use-m7-consolidation`, smoke-tested 15/15 (100%) before launch. Run `20260911-063256`, `Initialized 2500 rollout jobs for 50 tasks`, in progress as of this writing. This is the number that will show whether M7's memory-core term is actively responsible for the shortfall vs. baseline, or whether LoRA alone shows a similar/larger gap (in which case the shortfall isn't M7-specific).
+
+Submission files updated: `robocasa_phasor_m7/Phasor_m7_2026-09-11.json` (real leaderboard-format schema, final LoRA+M7 numbers) and `robocasa_phasor_m7/submission.json` (internal tracking doc with full comparison + provenance). Both will need a final pass once `lora_only_realdata_fixed` completes.
+
+## Real, protocol-compliant retrain on full pretrain_human300 (300 tasks) -- FINAL
+
+Triggered by real feedback from the RoboCasa maintainer (sepnasiriany) on leaderboard PR #16: the
+original ablation's training data (34 atomic_seen+composite_seen tasks only) does not satisfy the
+official protocol, which requires fine-tuning on the full `pretrain_human300` corpus. Verified via
+RoboCasa's own `TASK_SET_REGISTRY['pretrain300']`: 300 real tasks (65 atomic + 235 composite,
+confirmed 300/300 present on disk), 0/16 `composite_unseen` tasks leak in -- safe to use.
+
+Code change: added `PRETRAIN300_ATOMIC_TASKS`/`PRETRAIN300_COMPOSITE_TASKS` to
+`code/robocasa_lerobot_dataset.py` and a new `--robocasa-task-set {seen34,pretrain300}` flag to
+`code/finetune_run.py` (default `seen34`, preserving all prior behavior/tests -- full 49-test suite
+still passes). Same training budget as every prior leg (220 steps, batch 48, seed 42) for direct
+comparability -- only the data pool widened.
+
+Both legs retrained via `run_pretrain300_pipeline.sh`: train -> merge -> smoke test (gate >=30%) ->
+full eval, for LoRA-only then LoRA+M7, run sequentially (GPU can't fit two 3-server sweeps at once).
+Both smoke tests passed 15/15 (100%) before their full sweeps were launched. Both full sweeps
+completed for real: 2500/2500 episodes, 0 errors, each leg.
+
+**Real, final, protocol-compliant three-way comparison:**
+
+| Category | Baseline (frozen) | LoRA-only (pretrain300) | LoRA+M7 (pretrain300) |
+|---|---|---|---|
+| atomic_seen | 79.44% (715/900) | 79.22% (713/900) | 78.67% (708/900) |
+| composite_seen | 57.63% (461/800) | 56.88% (455/800) | 57.38% (459/800) |
+| composite_unseen | 30.75% (246/800) | 32.12% (257/800) | 31.50% (252/800) |
+| **Overall** | 56.88% (1422/2500) | **57.00% (1425/2500)** | 56.76% (1419/2500) |
+
+**Honest read: M7's memory core does not add value over LoRA alone.** LoRA-only is the only one of
+the three to beat frozen baseline overall (+0.12pt) and has the strongest composite_unseen result
+(+1.37pt over baseline) -- the category that actually tests generalization to held-out tasks.
+LoRA+M7 also beats baseline on composite_unseen (+0.75pt) so the memory core is not harmful, but it
+underperforms LoRA-only on atomic_seen, composite_unseen, and overall (only composite_seen favors
+LoRA+M7, by 0.5pt). LoRA+M7's overall result (56.76%) is slightly BELOW the frozen baseline.
+
+This supersedes the earlier (protocol-invalid, 34-task) ablation numbers entirely -- those were
+trained on task-overlapping data and are not a valid leaderboard comparison per the maintainer's own
+stated protocol. This is the real, submittable result.

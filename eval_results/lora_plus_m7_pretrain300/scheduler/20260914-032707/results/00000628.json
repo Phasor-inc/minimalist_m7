@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00000628",
+    "env_name": "PickPlaceToasterToCounter",
+    "task_index": 12,
+    "episode": 28,
+    "global_episode_index": 628
+  },
+  "worker_id": "gpu-2",
+  "stats": {
+    "env_name": "PickPlaceToasterToCounter",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 600,
+    "episodes": [
+      {
+        "episode": 28,
+        "global_episode_index": 628,
+        "seed": 635,
+        "success": true,
+        "steps": 206
+      }
+    ]
+  }
+}

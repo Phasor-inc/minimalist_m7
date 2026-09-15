@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00002010",
+    "env_name": "GatherTableware",
+    "task_index": 40,
+    "episode": 10,
+    "global_episode_index": 2010
+  },
+  "worker_id": "gpu-2",
+  "stats": {
+    "env_name": "GatherTableware",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 2250,
+    "episodes": [
+      {
+        "episode": 10,
+        "global_episode_index": 2010,
+        "seed": 2017,
+        "success": true,
+        "steps": 1563
+      }
+    ]
+  }
+}

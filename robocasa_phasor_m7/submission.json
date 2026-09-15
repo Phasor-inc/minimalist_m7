@@ -4,7 +4,7 @@
   "method_summary": "Frozen Xiaomi-Robotics-1-RoboCasa365 backbone (5B params: Qwen3-VL-4B VLM + 36-layer DiT action head reading the VLM's own KV-cache) fine-tuned with rank-4 LoRA adapters on the VLM's language_model attention/MLP layers only, plus Phasor's own sparse end-to-end memory core (ImprovedHGRNGate + ModernHopfieldLayer + adaptive gate) applied to pooled VLM hidden states as an additive consolidation-loss regularizer. The DiT action head is never modified -- verified on every training run via exact weight-sum matching before/after (87388.32329446077, unchanged in all runs).",
   "base_model": "XiaomiRobotics/Xiaomi-Robotics-1-RoboCasa365",
   "base_model_frozen": true,
-  "training_data": "Real RoboCasa365 training data (NVIDIA PhysicalAI-Robotics-Manipulation-Kitchen-Demos, lerobot format), restricted to the 34 official atomic_seen + composite_seen tasks used by the target50 eval protocol. composite_unseen tasks are correctly absent from training data by design (they are the held-out generalization split).",
+  "training_data": "Real RoboCasa365 pretrain_human300 corpus (all 300 tasks: 65 atomic + 235 composite, verified 300/300 present on disk and 0/16 composite_unseen tasks leak in, per robocasa.utils.dataset_registry.TASK_SET_REGISTRY['pretrain300']). This is the protocol-compliant training data -- see 'protocol_correction' below for the earlier, invalid 34-task version.",
   "eval_protocol": {
     "task_set": "target50",
     "split": "pretrain",
@@ -17,6 +17,7 @@
       "composite_unseen": 16
     }
   },
+  "protocol_correction": "The RoboCasa365 leaderboard maintainer (sepnasiriany) flagged on PR #16 that the original submission's fine-tuning data (34 atomic_seen+composite_seen tasks only) does not satisfy the official protocol, which requires training on the full pretrain_human300 corpus (300 tasks) -- restricting training to eval-overlapping tasks makes the numbers incomparable to other entries. Both ablation legs were retrained from scratch on the full pretrain_human300 corpus (same seed/budget: 220 steps, batch 48) and fully re-evaluated. The results below (*_pretrain300 entries) are the real, protocol-compliant, submittable numbers. The original *_realdata_fixed entries are kept below for historical record only and are marked invalid -- superseded.",
   "results": {
     "baseline_frozen_xr1": {
       "status": "complete",
@@ -33,41 +34,76 @@
         "overall": "1422/2500"
       }
     },
-    "lora_plus_m7_realdata_fixed": {
+    "lora_only_pretrain300": {
       "status": "complete",
-      "description": "LoRA + M7 memory-core consolidation, fine-tuned on real RoboCasa365 data. This is the primary submission leg.",
+      "description": "LoRA-only ablation, fine-tuned on the full, protocol-compliant pretrain_human300 corpus (300 tasks). This is the real, valid comparison point for isolating M7's specific contribution.",
+      "run_id": "20260912-185330",
+      "checkpoint": "checkpoints/lora_only_pretrain300_merged",
+      "atomic_seen_success": 0.7922,
+      "composite_seen_success": 0.5688,
+      "composite_unseen_success": 0.3212,
+      "overall_success": 0.5700,
+      "episode_counts": {
+        "atomic_seen": "713/900",
+        "composite_seen": "455/800",
+        "composite_unseen": "257/800",
+        "overall": "1425/2500"
+      },
+      "delta_vs_baseline": {
+        "atomic_seen": -0.0022,
+        "composite_seen": -0.0075,
+        "composite_unseen": 0.0137,
+        "overall": 0.0012
+      },
+      "note": "The only one of the three legs (baseline / LoRA-only / LoRA+M7) to beat the frozen baseline overall, and has the strongest composite_unseen result of all three -- real, protocol-compliant evidence that plain LoRA fine-tuning on the full corpus modestly improves generalization to held-out tasks."
+    },
+    "lora_plus_m7_pretrain300": {
+      "status": "complete",
+      "description": "LoRA + M7 memory-core consolidation, fine-tuned on the full, protocol-compliant pretrain_human300 corpus (300 tasks). This is the primary submission leg (Phasor_m7).",
+      "run_id": "20260914-032707",
+      "checkpoint": "checkpoints/lora_plus_m7_pretrain300_merged",
+      "atomic_seen_success": 0.7867,
+      "composite_seen_success": 0.5738,
+      "composite_unseen_success": 0.3150,
+      "overall_success": 0.5676,
+      "episode_counts": {
+        "atomic_seen": "708/900",
+        "composite_seen": "459/800",
+        "composite_unseen": "252/800",
+        "overall": "1419/2500"
+      },
+      "delta_vs_baseline": {
+        "atomic_seen": -0.0077,
+        "composite_seen": -0.0025,
+        "composite_unseen": 0.0075,
+        "overall": -0.0012
+      },
+      "delta_vs_lora_only_pretrain300": {
+        "atomic_seen": -0.0055,
+        "composite_seen": 0.0050,
+        "composite_unseen": -0.0062,
+        "overall": -0.0024
+      },
+      "note": "HONEST FINAL VERDICT: M7's memory core does not add value over LoRA alone. LoRA+M7 beats baseline on composite_unseen (+0.75pt, so the memory core is not harmful) but underperforms LoRA-only on atomic_seen, composite_unseen (the generalization-relevant category), and overall -- only composite_seen favors LoRA+M7, by 0.5pt. LoRA+M7's overall result (56.76%) is slightly below the frozen baseline (56.88%)."
+    },
+    "lora_plus_m7_realdata_fixed_INVALID": {
+      "status": "invalid -- superseded, protocol non-compliant",
+      "description": "Original LoRA+M7 leg, trained on only the 34 atomic_seen+composite_seen tasks. Flagged by the RoboCasa maintainer as not satisfying the official protocol (training data must be the full pretrain_human300 corpus, not a subset overlapping the eval tasks). Kept for historical record only -- do not cite as the submission result.",
       "run_id": "20260909-200546",
-      "checkpoint": "checkpoints/lora_plus_m7_realdata_fixed_merged",
       "atomic_seen_success": 0.7889,
       "composite_seen_success": 0.5500,
       "composite_unseen_success": 0.2988,
-      "overall_success": 0.5556,
-      "episode_counts": {
-        "atomic_seen": "710/900",
-        "composite_seen": "440/800",
-        "composite_unseen": "239/800",
-        "overall": "1389/2500"
-      },
-      "delta_vs_baseline": {
-        "atomic_seen": -0.0055,
-        "composite_seen": -0.0263,
-        "composite_unseen": -0.0087,
-        "overall": -0.0132
-      },
-      "note": "Real, final, complete result (2500/2500 episodes, 0 errors). LoRA+M7 is essentially tied with the frozen baseline on atomic_seen and modestly behind on composite_seen/composite_unseen/overall -- it does NOT clearly beat the baseline in this run. Full per-task composite_unseen breakdown investigated separately: 3 tasks (GatherTableware, HeatKebabSandwich, PanTransfer) score ~0% for BOTH baseline and LoRA+M7 (pre-existing model-family limitation, not a fine-tuning regression); excluding those 3 known-broken tasks would raise both baseline's and LoRA+M7's composite_unseen averages roughly in parallel, not change the relative comparison materially."
+      "overall_success": 0.5556
     },
-    "lora_only_realdata_fixed": {
-      "status": "IN_PROGRESS",
-      "description": "LoRA-only ablation leg (no M7 consolidation term), same real RoboCasa365 data and same action-order fix applied. Needed to isolate M7's specific contribution beyond LoRA alone. Auto-launched by queue_lora_only_fixed.sh once lora_plus_m7_realdata_fixed's sweep completed; smoke-tested 15/15 (100%) before the full sweep was launched.",
+    "lora_only_realdata_fixed_INVALID": {
+      "status": "invalid -- superseded, protocol non-compliant",
+      "description": "Original LoRA-only leg, same 34-task protocol violation as above. Kept for historical record only.",
       "run_id": "20260911-063256",
-      "checkpoint": "checkpoints/lora_only_realdata_fixed_merged",
-      "as_of": "2026-09-11T08:10:00Z",
-      "episodes_complete": "325/2500 (13%)",
-      "note": "Just started -- too early for a partial readout to be meaningful. Will be updated with final numbers once complete."
+      "note": "Eval sweep was stopped partway (1585/2500, ~63%) when the project pivoted to the pretrain300 retrain; never completed."
     },
     "lora_only_realdata_INVALID": {
       "status": "invalid -- superseded",
-      "description": "An earlier LoRA-only run on real RoboCasa365 data was affected by the same action-dimension field-order bug documented below and was abandoned early (487/2500 episodes, 1.4% success). Not usable as a comparison point; superseded by lora_only_realdata_fixed above.",
+      "description": "An earlier LoRA-only run affected by a since-fixed action-dimension field-order bug, abandoned early (487/2500 episodes, 1.4% success). Not usable as a comparison point.",
       "run_id": "20260907-192751"
     }
   },
@@ -84,10 +120,12 @@
     "adapter_target_dim": 512,
     "memory_size": 256,
     "lora_target_modules": "VLM language_model attention (q_proj/k_proj/v_proj/o_proj) and MLP (gate_proj/up_proj/down_proj) Linear layers only",
-    "dit_action_head": "frozen, untouched (verified via exact weight-sum invariant on every run)"
+    "dit_action_head": "frozen, untouched (verified via exact weight-sum invariant on every run)",
+    "training_data_pretrain300": "Full RoboCasa365 pretrain_human300 corpus (300 tasks), same budget/seed as all other legs for direct comparability"
   },
   "notes": [
-    "A real bug was found and fixed prior to this run: code/robocasa_lerobot_dataset.py copied the raw lerobot 'action' parquet column directly into the model's action-head input, but the on-disk field order (base_motion, control_mode, ee_position, ee_rotation, gripper_close) does not match the order the model's action head was actually calibrated against (per robocasa.utils.env_utils.convert_action: ee_position, ee_rotation, gripper_close, base_motion, control_mode). This caused an earlier lora_plus_m7_realdata run to collapse to 0.6% overall success. Fixed by adding action_window_to_real_order() to remap the field order before training; verified via a 15/15 (100%) targeted smoke test on CloseFridge/OpenCabinet/NavigateKitchen before launching the full sweep.",
-    "Honest headline result: on this run, LoRA+M7 does NOT beat the frozen baseline -- it is essentially tied on atomic_seen (-0.55pt) and modestly behind on composite_seen (-2.63pt), composite_unseen (-0.87pt), and overall (-1.32pt). This file will be updated once lora_only_realdata_fixed completes, which will show whether M7's memory-core term is actively hurting relative to LoRA alone, or whether LoRA alone would show a similar or larger gap versus baseline (in which case M7 isn't the cause of the shortfall)."
+    "A real bug was found and fixed early in this project: code/robocasa_lerobot_dataset.py copied the raw lerobot 'action' parquet column directly into the model's action-head input, but the on-disk field order did not match the order the model's action head was actually calibrated against. Fixed by adding action_window_to_real_order(); verified via a 15/15 (100%) targeted smoke test before launching each full sweep since.",
+    "A second, more significant issue was found later: the original ablation's training data was restricted to the 34 atomic_seen+composite_seen tasks, which the RoboCasa maintainer correctly flagged as not satisfying the official protocol (training must use the full pretrain_human300 corpus). Both legs were retrained on the full 300-task corpus and re-evaluated; see the *_pretrain300 entries above for the real, submittable results.",
+    "Honest final verdict, on protocol-compliant data: LoRA-only fine-tuning on pretrain_human300 modestly beats the frozen baseline overall (+0.12pt) and on composite_unseen (+1.37pt). Adding M7's memory-core consolidation term on top does not improve on this -- LoRA+M7 underperforms LoRA-only on atomic_seen, composite_unseen, and overall, landing slightly below baseline overall. M7 is not harmful (it still beats baseline on composite_unseen) but does not add value beyond LoRA alone in this properly-validated setup."
   ]
 }

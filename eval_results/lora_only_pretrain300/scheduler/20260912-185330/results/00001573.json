@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00001573",
+    "env_name": "StirVegetables",
+    "task_index": 31,
+    "episode": 23,
+    "global_episode_index": 1573
+  },
+  "worker_id": "gpu-1",
+  "stats": {
+    "env_name": "StirVegetables",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 0,
+    "success_rate": 0.0,
+    "horizon": 2400,
+    "episodes": [
+      {
+        "episode": 23,
+        "global_episode_index": 1573,
+        "seed": 1580,
+        "success": false,
+        "steps": 2400
+      }
+    ]
+  }
+}

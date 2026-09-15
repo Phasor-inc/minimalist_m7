@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00001005",
+    "env_name": "KettleBoiling",
+    "task_index": 20,
+    "episode": 5,
+    "global_episode_index": 1005
+  },
+  "worker_id": "gpu-0",
+  "stats": {
+    "env_name": "KettleBoiling",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 1,
+    "success_rate": 1.0,
+    "horizon": 1500,
+    "episodes": [
+      {
+        "episode": 5,
+        "global_episode_index": 1005,
+        "seed": 1012,
+        "success": true,
+        "steps": 703
+      }
+    ]
+  }
+}

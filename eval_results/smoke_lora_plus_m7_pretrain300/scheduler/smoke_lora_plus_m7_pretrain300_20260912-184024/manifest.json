@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "config": {
+    "model_path": "/workspace/xr1-m7-submission/checkpoints/lora_plus_m7_pretrain300_merged",
+    "robot_type": "robocasa365",
+    "server_addr": "127.0.0.1",
+    "server_port": 10086,
+    "split": "pretrain",
+    "task_set": "target50",
+    "task_name": [
+      "CloseFridge",
+      "OpenCabinet",
+      "NavigateKitchen"
+    ],
+    "max_tasks": null,
+    "num_trials": 5,
+    "replan_steps": 16,
+    "obs_history": 4,
+    "obs_interval": 2,
+    "horizon": null,
+    "seed": 7,
+    "crop_ratio": 0.95,
+    "save_root_dir": "/workspace/xr1-m7-submission/eval_results/smoke_lora_plus_m7_pretrain300",
+    "run_id": "smoke_lora_plus_m7_pretrain300_20260912-184024",
+    "save_videos": false,
+    "save_failure_videos": false,
+    "video_stride": 2,
+    "video_fps": 20
+  },
+  "selected_tasks": [
+    "CloseFridge",
+    "OpenCabinet",
+    "NavigateKitchen"
+  ],
+  "jobs": [
+    {
+      "id": "00000005",
+      "env_name": "CloseFridge",
+      "task_index": 1,
+      "episode": 0,
+      "global_episode_index": 5
+    },
+    {
+      "id": "00000006",
+      "env_name": "CloseFridge",
+      "task_index": 1,
+      "episode": 1,
+      "global_episode_index": 6
+    },
+    {
+      "id": "00000007",
+      "env_name": "CloseFridge",
+      "task_index": 1,
+      "episode": 2,
+      "global_episode_index": 7
+    },
+    {
+      "id": "00000008",
+      "env_name": "CloseFridge",
+      "task_index": 1,
+      "episode": 3,
+      "global_episode_index": 8
+    },
+    {
+      "id": "00000009",
+      "env_name": "CloseFridge",
+      "task_index": 1,
+      "episode": 4,
+      "global_episode_index": 9
+    },
+    {
+      "id": "00000025",
+      "env_name": "OpenCabinet",
+      "task_index": 5,
+      "episode": 0,
+      "global_episode_index": 25
+    },
+    {
+      "id": "00000026",
+      "env_name": "OpenCabinet",
+      "task_index": 5,
+      "episode": 1,
+      "global_episode_index": 26
+    },
+    {
+      "id": "00000027",
+      "env_name": "OpenCabinet",
+      "task_index": 5,
+      "episode": 2,
+      "global_episode_index": 27
+    },
+    {
+      "id": "00000028",
+      "env_name": "OpenCabinet",
+      "task_index": 5,
+      "episode": 3,
+      "global_episode_index": 28
+    },
+    {
+      "id": "00000029",
+      "env_name": "OpenCabinet",
+      "task_index": 5,
+      "episode": 4,
+      "global_episode_index": 29
+    },
+    {
+      "id": "00000020",
+      "env_name": "NavigateKitchen",
+      "task_index": 4,
+      "episode": 0,
+      "global_episode_index": 20
+    },
+    {
+      "id": "00000021",
+      "env_name": "NavigateKitchen",
+      "task_index": 4,
+      "episode": 1,
+      "global_episode_index": 21
+    },
+    {
+      "id": "00000022",
+      "env_name": "NavigateKitchen",
+      "task_index": 4,
+      "episode": 2,
+      "global_episode_index": 22
+    },
+    {
+      "id": "00000023",
+      "env_name": "NavigateKitchen",
+      "task_index": 4,
+      "episode": 3,
+      "global_episode_index": 23
+    },
+    {
+      "id": "00000024",
+      "env_name": "NavigateKitchen",
+      "task_index": 4,
+      "episode": 4,
+      "global_episode_index": 24
+    }
+  ]
+}

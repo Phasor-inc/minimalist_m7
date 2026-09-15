@@ -1,0 +1,81 @@
+[robosuite WARNING] No private macro file found! (macros.py:57)
+2026-09-12 18:41:13,776 WARNING No private macro file found!
+[robosuite WARNING] It is recommended to use a private macro file (macros.py:58)
+2026-09-12 18:41:13,777 WARNING It is recommended to use a private macro file
+[robosuite WARNING] To setup, run: python /workspace/robocasa-deps/robosuite/robosuite/scripts/setup_macros.py (macros.py:59)
+2026-09-12 18:41:13,777 WARNING To setup, run: python /workspace/robocasa-deps/robosuite/robosuite/scripts/setup_macros.py
+2026-09-12 18:41:13,907 INFO No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+[robosuite WARNING] Could not import robosuite_models. Some robots may not be available. If you want to use these robots, please install robosuite_models from source (https://github.com/ARISE-Initiative/robosuite_models) or through pip install. (__init__.py:30)
+2026-09-12 18:41:14,804 WARNING Could not import robosuite_models. Some robots may not be available. If you want to use these robots, please install robosuite_models from source (https://github.com/ARISE-Initiative/robosuite_models) or through pip install.
+[robosuite WARNING] Could not load the mink-based whole-body IK. Make sure you install related import properly (e.g. pip install mink==0.0.5), otherwise you will not be able to use the default IK controller setting for GR1 robot. (__init__.py:40)
+2026-09-12 18:41:14,811 WARNING Could not load the mink-based whole-body IK. Make sure you install related import properly (e.g. pip install mink==0.0.5), otherwise you will not be able to use the default IK controller setting for GR1 robot.
+WARNING: mimicgen environments not imported since mimicgen is not installed!
+Client connected to server at 127.0.0.1:10086.
+2026-09-12 18:41:19,031 INFO Loaded processor from /workspace/xr1-m7-submission/checkpoints/lora_plus_m7_pretrain300_merged; robot types: ['robocasa365']
+2026-09-12 18:41:19,035 INFO Worker gpu-0 claimed rollout 00000005 (CloseFridge episode 0)
+Creating CloseFridge with split=pretrain
+[robosuite INFO] Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json (composite_controller_factory.py:121)
+2026-09-12 18:41:19,038 INFO Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json
+/workspace/xr1-m7-submission/miniconda3/envs/robocasa_365/lib/python3.11/site-packages/gymnasium/utils/passive_env_checker.py:159: UserWarning: [33mWARN: The obs returned by the `reset()` method is not within the observation space.[0m
+  logger.warn(f"{pre} is not within the observation space.")
+Asked to sample `fps` frames per second but no video metadata was provided which is required when sampling with `fps`. Defaulting to `fps=24`. Please provide `video_metadata` for more accurate results.
+/workspace/xr1-m7-submission/miniconda3/envs/robocasa_365/lib/python3.11/site-packages/gymnasium/utils/passive_env_checker.py:159: UserWarning: [33mWARN: The obs returned by the `step()` method is not within the observation space.[0m
+  logger.warn(f"{pre} is not within the observation space.")
+2026-09-12 18:42:01,750 INFO Worker gpu-0 claimed rollout 00000006 (CloseFridge episode 1)
+Creating CloseFridge with split=pretrain
+[robosuite INFO] Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json (composite_controller_factory.py:121)
+2026-09-12 18:42:01,753 INFO Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json
+2026-09-12 18:42:29,078 INFO Worker gpu-0 claimed rollout 00000007 (CloseFridge episode 2)
+Creating CloseFridge with split=pretrain
+[robosuite INFO] Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json (composite_controller_factory.py:121)
+2026-09-12 18:42:29,081 INFO Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json
+2026-09-12 18:42:54,851 INFO Worker gpu-0 claimed rollout 00000008 (CloseFridge episode 3)
+Creating CloseFridge with split=pretrain
+[robosuite INFO] Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json (composite_controller_factory.py:121)
+2026-09-12 18:42:54,854 INFO Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json
+2026-09-12 18:43:17,516 INFO Worker gpu-0 claimed rollout 00000009 (CloseFridge episode 4)
+Creating CloseFridge with split=pretrain
+[robosuite INFO] Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json (composite_controller_factory.py:121)
+2026-09-12 18:43:17,519 INFO Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json
+2026-09-12 18:44:00,911 INFO Worker gpu-0 claimed rollout 00000020 (NavigateKitchen episode 0)
+Creating NavigateKitchen with split=pretrain
+[robosuite INFO] Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json (composite_controller_factory.py:121)
+2026-09-12 18:44:00,914 INFO Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json
+2026-09-12 18:44:40,717 INFO Worker gpu-0 claimed rollout 00000021 (NavigateKitchen episode 1)
+Creating NavigateKitchen with split=pretrain
+[robosuite INFO] Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json (composite_controller_factory.py:121)
+2026-09-12 18:44:40,720 INFO Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json
+2026-09-12 18:45:14,471 INFO Worker gpu-0 claimed rollout 00000022 (NavigateKitchen episode 2)
+Creating NavigateKitchen with split=pretrain
+[robosuite INFO] Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json (composite_controller_factory.py:121)
+2026-09-12 18:45:14,474 INFO Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json
+2026-09-12 18:46:00,978 INFO Worker gpu-0 claimed rollout 00000023 (NavigateKitchen episode 3)
+Creating NavigateKitchen with split=pretrain
+[robosuite INFO] Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json (composite_controller_factory.py:121)
+2026-09-12 18:46:00,982 INFO Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json
+2026-09-12 18:46:43,783 INFO Worker gpu-0 claimed rollout 00000024 (NavigateKitchen episode 4)
+Creating NavigateKitchen with split=pretrain
+[robosuite INFO] Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json (composite_controller_factory.py:121)
+2026-09-12 18:46:43,788 INFO Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json
+2026-09-12 18:47:23,764 INFO Worker gpu-0 claimed rollout 00000025 (OpenCabinet episode 0)
+Creating OpenCabinet with split=pretrain
+[robosuite INFO] Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json (composite_controller_factory.py:121)
+2026-09-12 18:47:23,767 INFO Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json
+2026-09-12 18:47:51,715 INFO Worker gpu-0 claimed rollout 00000026 (OpenCabinet episode 1)
+Creating OpenCabinet with split=pretrain
+[robosuite INFO] Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json (composite_controller_factory.py:121)
+2026-09-12 18:47:51,718 INFO Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json
+2026-09-12 18:48:36,537 INFO Worker gpu-0 claimed rollout 00000027 (OpenCabinet episode 2)
+Creating OpenCabinet with split=pretrain
+[robosuite INFO] Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json (composite_controller_factory.py:121)
+2026-09-12 18:48:36,541 INFO Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json
+2026-09-12 18:49:11,287 INFO Worker gpu-0 claimed rollout 00000028 (OpenCabinet episode 3)
+Creating OpenCabinet with split=pretrain
+[robosuite INFO] Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json (composite_controller_factory.py:121)
+2026-09-12 18:49:11,291 INFO Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json
+2026-09-12 18:49:49,645 INFO Worker gpu-0 claimed rollout 00000029 (OpenCabinet episode 4)
+Creating OpenCabinet with split=pretrain
+[robosuite INFO] Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json (composite_controller_factory.py:121)
+2026-09-12 18:49:49,648 INFO Loading controller configuration from: /workspace/robocasa-deps/robosuite/robosuite/controllers/config/robots/default_pandaomron.json
+Client connection closed.
+2026-09-12 18:50:27,984 INFO Worker gpu-0 completed 15 rollouts

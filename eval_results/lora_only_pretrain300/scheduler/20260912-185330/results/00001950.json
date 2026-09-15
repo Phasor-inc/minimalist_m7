@@ -1,0 +1,27 @@
+{
+  "job": {
+    "id": "00001950",
+    "env_name": "GarnishPancake",
+    "task_index": 39,
+    "episode": 0,
+    "global_episode_index": 1950
+  },
+  "worker_id": "gpu-0",
+  "stats": {
+    "env_name": "GarnishPancake",
+    "split": "pretrain",
+    "num_episodes": 1,
+    "successes": 0,
+    "success_rate": 0.0,
+    "horizon": 2700,
+    "episodes": [
+      {
+        "episode": 0,
+        "global_episode_index": 1950,
+        "seed": 1957,
+        "success": false,
+        "steps": 2700
+      }
+    ]
+  }
+}

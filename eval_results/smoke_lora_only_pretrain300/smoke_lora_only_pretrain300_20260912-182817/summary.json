@@ -1,0 +1,151 @@
+{
+  "model_path": "/workspace/xr1-m7-submission/checkpoints/lora_only_pretrain300_merged",
+  "robot_type": "robocasa365",
+  "split": "pretrain",
+  "task_set": "target50",
+  "num_tasks": 3,
+  "num_episodes": 15,
+  "successes": 15,
+  "episode_success_rate": 1.0,
+  "mean_task_success_rate": 1.0,
+  "replan_steps": 16,
+  "obs_history": 4,
+  "obs_interval": 2,
+  "tasks": {
+    "CloseFridge": {
+      "env_name": "CloseFridge",
+      "split": "pretrain",
+      "num_episodes": 5,
+      "successes": 5,
+      "success_rate": 1.0,
+      "horizon": 900,
+      "episodes": [
+        {
+          "episode": 0,
+          "global_episode_index": 5,
+          "seed": 12,
+          "success": true,
+          "steps": 265
+        },
+        {
+          "episode": 1,
+          "global_episode_index": 6,
+          "seed": 13,
+          "success": true,
+          "steps": 219
+        },
+        {
+          "episode": 2,
+          "global_episode_index": 7,
+          "seed": 14,
+          "success": true,
+          "steps": 139
+        },
+        {
+          "episode": 3,
+          "global_episode_index": 8,
+          "seed": 15,
+          "success": true,
+          "steps": 117
+        },
+        {
+          "episode": 4,
+          "global_episode_index": 9,
+          "seed": 16,
+          "success": true,
+          "steps": 288
+        }
+      ]
+    },
+    "OpenCabinet": {
+      "env_name": "OpenCabinet",
+      "split": "pretrain",
+      "num_episodes": 5,
+      "successes": 5,
+      "success_rate": 1.0,
+      "horizon": 1050,
+      "episodes": [
+        {
+          "episode": 0,
+          "global_episode_index": 25,
+          "seed": 32,
+          "success": true,
+          "steps": 165
+        },
+        {
+          "episode": 1,
+          "global_episode_index": 26,
+          "seed": 33,
+          "success": true,
+          "steps": 383
+        },
+        {
+          "episode": 2,
+          "global_episode_index": 27,
+          "seed": 34,
+          "success": true,
+          "steps": 346
+        },
+        {
+          "episode": 3,
+          "global_episode_index": 28,
+          "seed": 35,
+          "success": true,
+          "steps": 325
+        },
+        {
+          "episode": 4,
+          "global_episode_index": 29,
+          "seed": 36,
+          "success": true,
+          "steps": 371
+        }
+      ]
+    },
+    "NavigateKitchen": {
+      "env_name": "NavigateKitchen",
+      "split": "pretrain",
+      "num_episodes": 5,
+      "successes": 5,
+      "success_rate": 1.0,
+      "horizon": 450,
+      "episodes": [
+        {
+          "episode": 0,
+          "global_episode_index": 20,
+          "seed": 27,
+          "success": true,
+          "steps": 165
+        },
+        {
+          "episode": 1,
+          "global_episode_index": 21,
+          "seed": 28,
+          "success": true,
+          "steps": 142
+        },
+        {
+          "episode": 2,
+          "global_episode_index": 22,
+          "seed": 29,
+          "success": true,
+          "steps": 248
+        },
+        {
+          "episode": 3,
+          "global_episode_index": 23,
+          "seed": 30,
+          "success": true,
+          "steps": 202
+        },
+        {
+          "episode": 4,
+          "global_episode_index": 24,
+          "seed": 31,
+          "success": true,
+          "steps": 168
+        }
+      ]
+    }
+  }
+}
