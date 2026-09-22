@@ -43,8 +43,15 @@ category breakdown from any `summary.json` in this repo.
 
 ## What's real and verifiable here
 
-- `code/` — the actual training/merge code (LoRA injection, M7 memory core,
-  pooled hidden-state adapter, fine-tuning loop, checkpoint merge)
+- `code/` — the actual training/merge/eval code: LoRA injection
+  (`lora_adapters.py`), the fine-tuning loop (`finetune_run.py`), the checkpoint
+  merge (`merge_lora_for_eval.py`), the eval harness wrapper (`eval_wrapper.py`),
+  and the RoboCasa data loader (`robocasa_lerobot_dataset.py`). One file,
+  `m7_memory_core.py`, is deliberately not included — see
+  `code/m7_memory_core_NOTICE.md` for why and for the exact math it implements.
+  It never runs at inference/eval time (confirmed in `merge_lora_for_eval.py`'s
+  own docstring) — it only shaped the LoRA weights during the training run that
+  produced this checkpoint.
 - `tests/` — unit tests (49 passing at time of writing), including tests that
   pin down a real bug found and fixed mid-project (see below)
 - `eval_results/` — real `summary.json` + per-episode result files backing the
@@ -71,7 +78,7 @@ smoke test before re-running the full sweep. Full writeup with evidence in
 Merged, deployable checkpoint (pretrain300, protocol-compliant) is hosted on
 Hugging Face:
 
-- [Project-Phasor/phasor-m7-robocasa365](https://huggingface.co/Project-Phasor/phasor-m7-robocasa365) — the submission checkpoint
+- [Ujere/phasor-m7-robocasa365](https://huggingface.co/Ujere/phasor-m7-robocasa365) — the submission checkpoint
 
 ## Training config (real, as used)
 
@@ -81,25 +88,25 @@ Hugging Face:
 - LoRA: rank 4, alpha 8.0, zero-init B
 - Batch size 48, action length 30, 220 training steps
 - M7 memory core: consolidation weight 0.1, adapter target dim 512, memory size 256
+  (exact math in `code/m7_memory_core_NOTICE.md` — implementation is proprietary,
+  not included in this repo)
 - Training data: real RoboCasa365 `pretrain_human300` corpus (300 tasks: 65 atomic
   + 235 composite, verified 0/16 `composite_unseen` tasks leak in)
 
 ## Reproducing
 
 ```bash
-# Fine-tune (LoRA + M7, protocol-compliant pretrain300 data)
-python3 -u -m code.finetune_run \
-  --checkpoint <path-to-Xiaomi-Robotics-1-RoboCasa365> \
-  --output-dir <output> --seed 42 --total-steps 220 --batch-size 48 \
-  --num-workers 0 --data-source robocasa --robocasa-task-set pretrain300 \
-  --use-m7-consolidation
-
-# Merge the LoRA delta into a deployable checkpoint
+# Merge the LoRA delta into a deployable checkpoint (fully reproducible — no
+# proprietary code needed, this is the artifact actually evaluated)
 python3 -u -m code.merge_lora_for_eval \
-  --delta <output>/finetuned_delta.pt --output-dir <output>_merged
+  --delta <finetuned_delta.pt> --output-dir <output>_merged
 
 # Evaluate against the official target50 protocol using Xiaomi's own
 # released eval_robocasa365/ scripts (see NOTES.md for the exact commands used)
 ```
+
+Note: `code.finetune_run --use-m7-consolidation` depends on the redacted
+`m7_memory_core.py` and won't run as-is from this repo. LoRA-only fine-tuning
+(`finetune_run.py` without that flag) does run end-to-end from what's here.
 
 Submission JSON for the RoboCasa365 leaderboard is at `robocasa_phasor_m7/`.
